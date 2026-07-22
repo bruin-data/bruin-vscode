@@ -439,13 +439,9 @@ const handleMessage = (event: MessageEvent) => {
               activeTab.value = settingsIndex;
             }
           }
-          
-          // Auto-trigger lineage for pipeline.yml files
-          const isPipelineConfigFile = filePath.endsWith("pipeline.yml") || filePath.endsWith("pipeline.yaml");
-          if (isPipelineConfigFile) {
-            // Trigger lineage panel and show pipeline view
-            vscode.postMessage({ command: "bruin.showPipelineLineage" });
-          }
+          // Note: the lineage panel loads the pipeline view itself on file
+          // switch, so no separate showPipelineLineage trigger is needed here
+          // (it would cause a redundant second parse + rebuild).
         } catch (_) {}
         // Ask backend for status and details; relevant files will update via parse-message
         vscode.postMessage({ command: "checkBruinCliInstallation" });

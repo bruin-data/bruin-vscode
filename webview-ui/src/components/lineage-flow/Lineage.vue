@@ -1,13 +1,14 @@
 <template>
   <div class="flow">
-    <div v-if="shouldShowLoading" class="loading-overlay">
+    <div v-if="shouldShowLoading || isBuildingView" class="loading-overlay">
       <vscode-progress-ring></vscode-progress-ring>
-      <span class="ml-2 text-editor-fg">Loading lineage data...</span>
+      <span class="ml-2 text-editor-fg">{{ loadingMessage }}</span>
     </div>
     
     <!-- Asset View -->
     <VueFlow
       v-if="shouldShowAssetView"
+      :id="ASSET_FLOW_ID"
       v-model:elements="elements"
       :fit-view-on-init="false"
       class="basic-flow"
@@ -66,6 +67,7 @@
     <!-- Pipeline View (no special filter controls; use Asset behavior) -->
     <VueFlow
       v-if="showPipelineView"
+      :id="PIPELINE_FLOW_ID"
       :nodes="pipelineElements.nodes"
       :edges="pipelineElements.edges"
       @nodesInitialized="onPipelineNodesInitialized"
@@ -116,6 +118,7 @@
     <!-- Column Level View -->
     <VueFlow
       v-if="showColumnView"
+      :id="COLUMN_FLOW_ID"
       :nodes="columnElements.nodes"
       :edges="columnElements.edges"
       @nodesInitialized="onColumnNodesInitialized"
@@ -211,6 +214,7 @@ import {
 import { fetchAllDownstreams, fetchAllUpstreams } from "@/utilities/assetDependencies";
 import { buildPipelineLineage, applyLayout as applyPipelineLayout } from "@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder";
 import { buildColumnLineage } from "@/components/lineage-flow/column-level/useColumnLevel";
+import { vscode } from "@/utilities/vscode";
 import type { AssetDataset } from "@/types";
 
 const props = defineProps<{
@@ -224,13 +228,28 @@ const props = defineProps<{
 const error = ref<string | null>(props.LineageError);
 const showPipelineView = ref(false);
 const showColumnView = ref(false);
+const columnFetchPending = ref(false);
+// True while a pipeline/column graph is being (re)built. Drives an immediate
+// loading overlay for those slower builds, instead of a bare dark canvas.
+const isBuildingView = ref(false);
+// Bumped whenever a (re)build starts; an async build only applies its result
+// if it's still the latest, so a slow older build can't overwrite a newer one.
+let buildGeneration = 0;
 const showLoadingIndicator = ref(false);
 let loadingTimer: NodeJS.Timeout | null = null;
-const shouldAutoFit = ref(true); 
+const shouldAutoFit = ref(true);
+
+const loadingMessage = computed(() =>
+  showPipelineView.value
+    ? "Building pipeline lineage…"
+    : showColumnView.value
+      ? "Building column lineage…"
+      : "Loading lineage…"
+);
 
 // Debug computed properties
 const shouldShowLoading = computed(() => {
-  const isActuallyLoading = (props.isLoading || isLoadingLocal.value) || isLayouting.value;
+  const isActuallyLoading = (props.isLoading || isLoadingLocal.value) || isLayouting.value || columnFetchPending.value;
   
   // Start timer when loading begins
   if (isActuallyLoading && !loadingTimer) {
@@ -259,9 +278,17 @@ const shouldShowAssetView = computed(() => {
   return !showPipelineView.value && !showColumnView.value && !shouldShowLoading.value;
 });
 
+// Each view gets its own Vue Flow instance id so their viewports don't leak
+// into each other (e.g. the pipeline zoom carrying into the asset view).
+const ASSET_FLOW_ID = "asset-lineage-flow";
+const PIPELINE_FLOW_ID = "pipeline-lineage-flow";
+const COLUMN_FLOW_ID = "column-lineage-flow";
+
 // ===== Asset View State =====
 const flowRef = ref(null);
-const { nodes, edges, addNodes, addEdges, setNodes, setEdges, fitView, onNodeMouseEnter, onNodeMouseLeave, getNodes, getEdges } = useVueFlow();
+const { nodes, edges, addNodes, addEdges, setNodes, setEdges, fitView, onNodeMouseEnter, onNodeMouseLeave, getNodes, getEdges } = useVueFlow(ASSET_FLOW_ID);
+const { fitView: fitPipelineView } = useVueFlow(PIPELINE_FLOW_ID);
+const { fitView: fitColumnView } = useVueFlow(COLUMN_FLOW_ID);
 const elements = computed(() => [...nodes.value, ...edges.value]);
 const selectedNodeId = ref<string | null>(null);
 const isLoadingLocal = ref(true);
@@ -474,20 +501,25 @@ const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
 // Fit view helper - now with smart auto-fit logic
 const fitViewSmooth = async (forceAutoFit = false, useAnimation = false) => {
   await nextTick();
-  
+
   // Only auto-fit if explicitly requested or first load
   if (!forceAutoFit && !shouldAutoFit.value) {
     return;
   }
   
   const duration = useAnimation ? 300 : 0;
-  
+  const fit = showColumnView.value
+    ? fitColumnView
+    : showPipelineView.value
+      ? fitPipelineView
+      : fitView;
+
   try {
-    fitView({ padding: 0.2, duration });
+    fit({ padding: 0.2, duration });
     shouldAutoFit.value = false; // Disable auto-fit after first use
   } catch (e) {
     await nextTick();
-    fitView({ padding: 0.2, duration });
+    fit({ padding: 0.2, duration });
     shouldAutoFit.value = false;
   }
 };
@@ -496,7 +528,11 @@ const _updateGraph = async () => {
   if (!showPipelineView.value && !showColumnView.value) {
     isLoadingLocal.value = true;
     isLayouting.value = true;
-    
+    // Clear the previous asset's graph so it isn't shown while this builds.
+    setNodes([]);
+    setEdges([]);
+
+    const gen = ++buildGeneration;
     try {
       const graphData = currentGraphData.value;
       if (graphData.nodes.length > 0) {
@@ -505,13 +541,17 @@ const _updateGraph = async () => {
         if (!layoutedGraphData) {
           layoutedGraphData = await applyLayout(graphData.nodes, graphData.edges);
           layoutCache.value.set(key, layoutedGraphData);
-        }      
+        }
+        // A newer build started while we were laying out; discard this result.
+        if (gen !== buildGeneration) {
+          return;
+        }
         setNodes(layoutedGraphData.nodes);
         setEdges(layoutedGraphData.edges);
         isLayouting.value = false;
         isLoadingLocal.value = false;
         await nextTick();
-        
+
         await fitViewSmooth(true, false);
       } else {
         setNodes([]);
@@ -560,6 +600,10 @@ const processProperties = async () => {
   
   // Don't set loading states here - let _updateGraph handle it
   error.value = null;
+  // updateGraph is debounced, so clear the previous asset's graph now to avoid
+  // showing it for the debounce window before the new one is built.
+  setNodes([]);
+  setEdges([]);
   console.log('🔄 [Lineage] Starting graph update');
   try {
     await updateGraph();
@@ -686,6 +730,19 @@ const handlePipelineView = async () => {
   await buildPipelineElements();
 };
 
+// Column lineage is only present when parsed with `-c` (fetched on demand).
+const hasColumnLineageData = (pd: any): boolean => {
+  if (!pd) {
+    return false;
+  }
+  return Boolean(pd.column_lineage) ||
+    (Array.isArray(pd.assets) && pd.assets.some((a: any) =>
+      a.columns?.length > 0 && a.columns.some((c: any) =>
+        Array.isArray(c.upstreams) && c.upstreams.length > 0
+      )
+    ));
+};
+
 const handleColumnLevelLineage = async () => {
   showColumnView.value = true;
   showPipelineView.value = false;
@@ -694,6 +751,16 @@ const handleColumnLevelLineage = async () => {
   columnFilterType.value = "all";
   columnExpandAllUpstreams.value = false;
   columnExpandAllDownstreams.value = false;
+
+  // Column data not loaded yet: fetch it on demand (-c) and show a spinner.
+  // When it arrives, the pipelineData watcher rebuilds the column view.
+  if (!hasColumnLineageData(props.pipelineData)) {
+    error.value = null;
+    columnElements.value = { nodes: [], edges: [] };
+    columnFetchPending.value = true;
+    vscode.postMessage({ command: "bruin.fetchColumnLineage" });
+    return;
+  }
   await buildColumnElements();
 };
 
@@ -737,9 +804,9 @@ watch(
 watch(
   () => [props.assetDataset, props.pipelineData],
   () => {
+    const key = computeTargetKey();
     if (!props.assetDataset) return;
 
-    const key = computeTargetKey();
     if (key !== lastViewKey) {
       // Switched target: reset to its default view.
       lastViewKey = key;
@@ -757,6 +824,19 @@ watch(
     }
   },
   { immediate: false }
+);
+
+// A parse error (e.g. an on-demand column fetch that failed) must clear any
+// pending/building state so the spinner can't hang, and surface the error.
+watch(
+  () => props.LineageError,
+  (newError) => {
+    if (newError) {
+      columnFetchPending.value = false;
+      isBuildingView.value = false;
+      error.value = newError;
+    }
+  }
 );
 
 onNodeMouseEnter((event: NodeMouseEvent) => {
@@ -815,13 +895,28 @@ const buildPipelineElements = async () => {
     pipelineElements.value = { nodes: [], edges: [] };
     return;
   }
-  const lineageData = buildPipelineLineage(props.pipelineData);
-  const { nodes: initialNodes, edges: initialEdges } = (await import("@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder")).generateGraph(
-    lineageData,
-    props.assetDataset?.name || ""
-  );
-  const { nodes: layoutNodes, edges: layoutEdges } = await applyPipelineLayout(initialNodes, initialEdges);
-  pipelineElements.value = { nodes: layoutNodes, edges: layoutEdges };
+  // Clear the previous pipeline's graph and show loading so the stale graph
+  // isn't left on screen while this (possibly slow) build runs.
+  pipelineElements.value = { nodes: [], edges: [] };
+  isBuildingView.value = true;
+  const gen = ++buildGeneration;
+  try {
+    const lineageData = buildPipelineLineage(props.pipelineData);
+    const { nodes: initialNodes, edges: initialEdges } = (await import("@/components/lineage-flow/pipeline-lineage/pipelineLineageBuilder")).generateGraph(
+      lineageData,
+      props.assetDataset?.name || ""
+    );
+    const { nodes: layoutNodes, edges: layoutEdges } = await applyPipelineLayout(initialNodes, initialEdges);
+    // A newer build started while we were laying out; discard this stale result.
+    if (gen !== buildGeneration) {
+      return;
+    }
+    pipelineElements.value = { nodes: layoutNodes, edges: layoutEdges };
+  } finally {
+    if (gen === buildGeneration) {
+      isBuildingView.value = false;
+    }
+  }
 };
 
 const onPipelineNodesInitialized = async () => {
@@ -994,42 +1089,53 @@ const onColumnNodeClick = (nodeId: string) => {
 
 const buildColumnElements = async () => {
   const newPipelineData = props.pipelineData;
+  // We only reach here once data is available, so any pending on-demand fetch
+  // has resolved — clear it so the spinner can't hang if columns are absent.
+  columnFetchPending.value = false;
   if (!newPipelineData) {
     columnElements.value = { nodes: [], edges: [] };
     return;
   }
-  const hasColumnData = newPipelineData.column_lineage || 
-    (newPipelineData.assets && newPipelineData.assets.some((asset: any) => 
-      asset.columns?.length > 0 && asset.columns.some((col: any) => 
-        col.upstreams && Array.isArray(col.upstreams) && col.upstreams.length > 0
-      )
-    ));
-  if (!hasColumnData) {
-    console.warn("No column lineage data available. The data may have been parsed without the -c flag.");
+  if (!hasColumnLineageData(newPipelineData)) {
     columnElements.value = { nodes: [], edges: [] };
     error.value = "No column lineage data found. To view column-level lineage, ensure the pipeline data includes column information";
     return;
   }
   error.value = null;
-  const lineageData = buildColumnLineage(newPipelineData);
-  // In pipeline view there is no single focus asset, so render column lineage
-  // across every asset in the pipeline instead of centering on one.
-  const isPipelineView = Boolean((props.assetDataset as any)?.isPipelineView);
-  const { nodes: initialNodes, edges: initialEdges } = isPipelineView
-    ? generateColumnGraphForPipeline(lineageData)
-    : generateColumnGraph(lineageData, props.assetDataset?.name || "");
-  const { nodes: layoutNodes, edges: layoutEdges } = await applyPipelineLayout(initialNodes, initialEdges);
+  // Clear the previous graph and show loading so a stale column graph isn't
+  // left on screen while this build runs.
+  columnElements.value = { nodes: [], edges: [] };
+  isBuildingView.value = true;
+  const gen = ++buildGeneration;
+  try {
+    const lineageData = buildColumnLineage(newPipelineData);
+    // In pipeline view there is no single focus asset, so render column lineage
+    // across every asset in the pipeline instead of centering on one.
+    const isPipelineView = Boolean((props.assetDataset as any)?.isPipelineView);
+    const { nodes: initialNodes, edges: initialEdges } = isPipelineView
+      ? generateColumnGraphForPipeline(lineageData)
+      : generateColumnGraph(lineageData, props.assetDataset?.name || "");
+    const { nodes: layoutNodes, edges: layoutEdges } = await applyPipelineLayout(initialNodes, initialEdges);
+    // A newer build started while we were laying out; discard this stale result.
+    if (gen !== buildGeneration) {
+      return;
+    }
 
-  // Save original positions for recalculation
-  originalColumnNodePositions.value = {};
-  layoutNodes.forEach(node => {
-    originalColumnNodePositions.value[node.id] = {
-      x: node.position.x,
-      y: node.position.y
-    };
-  });
+    // Save original positions for recalculation
+    originalColumnNodePositions.value = {};
+    layoutNodes.forEach(node => {
+      originalColumnNodePositions.value[node.id] = {
+        x: node.position.x,
+        y: node.position.y
+      };
+    });
 
-  columnElements.value = { nodes: layoutNodes, edges: layoutEdges };
+    columnElements.value = { nodes: layoutNodes, edges: layoutEdges };
+  } finally {
+    if (gen === buildGeneration) {
+      isBuildingView.value = false;
+    }
+  }
 };
 
 const onColumnNodesInitialized = async () => {

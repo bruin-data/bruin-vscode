@@ -24,6 +24,7 @@ import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAsse
 const lineageData = ref(); // Holds the lineage data received from the extension
 const lineageError = ref(); // Holds any errors related to lineage data
 const hasTimedOut = ref(false); // Tracks if initial load has timed out
+const isReloading = ref(false); // A new parse is in flight (file switch / edit)
 
 let lastMessageId: string | null = null;
 
@@ -37,7 +38,14 @@ const handleMessage = (event) => {
   if (message.panelType !== "AssetLineage") return;
   
   switch (message.command) {
+    case "flow-lineage-loading":
+      // A new parse started (file switch / edit): show loading instead of the
+      // previous graph so stale content isn't left on screen.
+      isReloading.value = true;
+      lineageError.value = undefined;
+      return;
     case "flow-lineage-message":
+      isReloading.value = false;
       const newData = updateValue(message, "success");
       const newError = updateValue(message, "error");
       
@@ -52,7 +60,6 @@ const handleMessage = (event) => {
       
       // Skip if this is the exact same message we just processed
       if (messageId === lastMessageId && messageId !== 'null') {
-        console.log('⚡ [AssetLineage] Skipping duplicate message');
         return;
       }
       lastMessageId = messageId;
@@ -103,7 +110,7 @@ const assetDataset = computed(() => {
 });
 
 const pipelineData = computed(() => pipeline.value);
-const isLoading = computed(() => !lineageData.value && !lineageError.value && !hasTimedOut.value);
+const isLoading = computed(() => !hasTimedOut.value && (isReloading.value || (!lineageData.value && !lineageError.value)));
 
 onMounted(() => {
   console.log('🚀 [AssetLineage] Component mounted');

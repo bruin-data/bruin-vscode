@@ -52,6 +52,7 @@ import {
 } from "../bruin/bruinConnections";
 import { BruinPanel } from "../panels/BruinPanel";
 import { LineagePanel } from "../panels/LineagePanel";
+import { getPipelineLineageCache } from "../providers/PipelineLineageCacheService";
 import { BruinLineage, BruinRender, BruinValidate } from "../bruin";
 import { renderCommand, renderCommandWithFlags } from "../extension/commands/renderCommand";
 import {
@@ -4132,6 +4133,9 @@ suite(" Query export Tests", () => {
       
       const lineagePanelModule = await import("../panels/LineagePanel");
       sinon.replace(lineagePanelModule, "updateLineageData", updateLineageDataStub);
+
+      // The parse cache is a singleton; clear it so each test triggers a real run.
+      getPipelineLineageCache().invalidateAll();
     });
 
     teardown(() => {
@@ -4539,9 +4543,9 @@ suite(" Query export Tests", () => {
         await baseLineagePanel.loadLineageData();
 
         sinon.assert.calledOnce(flowLineageCommandStub);
-        // Must request column-level lineage (-c) so the panel's "Column Level
-        // Lineage" view has the column data it needs.
-        sinon.assert.calledWith(flowLineageCommandStub, testUri, undefined, true);
+        // Plain parse only (no -c); column lineage is fetched on demand when the
+        // column view is opened.
+        sinon.assert.calledWith(flowLineageCommandStub, testUri, undefined, false);
       });
 
       test("should not load lineage data when no URI", async () => {

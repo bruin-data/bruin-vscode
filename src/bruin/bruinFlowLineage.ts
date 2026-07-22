@@ -3,8 +3,10 @@ import { BruinCommand } from "./bruinCommand";
 import { updateLineageData } from "../panels/LineagePanel";
 import { getCurrentPipelinePath } from "./bruinUtils";
 import * as vscode from "vscode";
+import * as path from "path";
 import { isConfigFile } from "../utilities/helperUtils";
 import { BruinPanel } from "../panels/BruinPanel";
+import { getPipelineLineageCache } from "../providers/PipelineLineageCacheService";
 
 export class BruinLineageInternalParse extends BruinCommand {
   
@@ -89,7 +91,19 @@ export class BruinLineageInternalParse extends BruinCommand {
         : flags;
       
       const pipelinePath = isPipelineFile ? filePath : await getCurrentPipelinePath(filePath) as string;
-      const result = await this.run([...enhancedFlags, pipelinePath], { ignoresErrors });
+
+      // Cache raw parse output per pipeline directory so switching between
+      // assets of the same pipeline reuses it instead of re-running the CLI.
+      const cache = getPipelineLineageCache();
+      const cacheKey = isPipelineFile ? path.dirname(filePath) : pipelinePath;
+      let result = cache.get(cacheKey, includeColumns);
+      if (result === undefined) {
+        result = await this.run([...enhancedFlags, pipelinePath], { ignoresErrors });
+        // Never cache empty output (e.g. ignoresErrors swallowed a failure).
+        if (result) {
+          cache.set(cacheKey, result, includeColumns);
+        }
+      }
       const pipelineData = JSON.parse(result);
       
       if(panel === "BruinPanel"){

@@ -3,6 +3,8 @@ import { getNonce } from "../utilities/getNonce";
 import { getUri } from "../utilities/getUri";
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 import { trackEvent } from "../extension/extension";
+import { getCurrentPipelinePath } from "../bruin/bruinUtils";
+import { getPipelineLineageCache } from "../providers/PipelineLineageCacheService";
 
 export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposable {
   private static instance: LineagePanel;
@@ -83,7 +85,13 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
     this.disposables.push(
       vscode.window.onDidChangeActiveTextEditor((event: vscode.TextEditor | undefined) => {
         if (event && event.document.uri.scheme !== "vscodebruin:panel") {
+          const changedFile = this._lastRenderedDocumentUri?.fsPath !== event.document.uri.fsPath;
           this._lastRenderedDocumentUri = event?.document.uri;
+          // On a real file switch, tell the panel a parse is coming so it shows
+          // loading instead of leaving the previous graph on screen.
+          if (changedFile) {
+            this.postLoading();
+          }
           this.loadLineageData();
           this.initPanel(event);
         }
@@ -122,18 +130,31 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
     if (this._docChangeDebounceTimer) {
       clearTimeout(this._docChangeDebounceTimer);
     }
-    this._docChangeDebounceTimer = setTimeout(() => {
+    this._docChangeDebounceTimer = setTimeout(async () => {
       this._docChangeDebounceTimer = undefined;
+      // The document changed, so any cached parse for its pipeline is stale.
+      await this.invalidateCacheForCurrentDoc();
       this.loadLineageData();
     }, BaseLineagePanel.docChangeDebounceMs);
   }
 
+  private invalidateCacheForCurrentDoc = async () => {
+    if (!this._lastRenderedDocumentUri) {
+      return;
+    }
+    const pipelineDir = await getCurrentPipelinePath(this._lastRenderedDocumentUri.fsPath);
+    if (pipelineDir) {
+      getPipelineLineageCache().invalidate(pipelineDir);
+    }
+  };
+
   protected loadLineageData = async () => {
     if (this._lastRenderedDocumentUri) {
       try {
-        // -c up front: the webview toggles to the column view without a
-        // round-trip, so the column data must already be present.
-        await flowLineageCommand(this._lastRenderedDocumentUri, undefined, true);
+        // Plain parse only (no -c): the fast path. Column-level lineage is
+        // fetched on demand via bruin.fetchColumnLineage when the column view
+        // is opened, since -c is far slower than the plain parse.
+        await flowLineageCommand(this._lastRenderedDocumentUri, undefined, false);
       } catch (error) {
         console.error("❌ [LineagePanel] Error loading lineage data:", error);
       }
@@ -160,6 +181,17 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
     }
     await this.resolveWebviewView(this._view, this.context!, this.token!);
   };
+
+  // Tell the webview a new parse is in flight so it shows loading instead of
+  // the previous graph.
+  private postLoading() {
+    if (this._view) {
+      this._view.webview.postMessage({
+        command: "flow-lineage-loading",
+        panelType: this.panelType,
+      });
+    }
+  }
 
   protected onDataUpdated(data: any) {
     // Post even when the view is hidden: with retainContextWhenHidden the
@@ -317,6 +349,16 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
             return;
           }
           this.refresh(vscode.window.activeTextEditor!!);
+          break;
+        case "bruin.fetchColumnLineage":
+          // On-demand column-level lineage (-c): only fetched when the user
+          // opens the Column view, since -c is far slower than the plain parse.
+          trackEvent("Command Executed", { command: "fetchColumnLineage", source: "extension" });
+          if (this._lastRenderedDocumentUri) {
+            flowLineageCommand(this._lastRenderedDocumentUri, undefined, true).catch((err) =>
+              console.error("[LineagePanel] on-demand column fetch failed", err)
+            );
+          }
           break;
       }
     })
