@@ -2,7 +2,12 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.82.6",
+  "version": "0.83.0",
+  "dacFrontend": {
+    "repo": "bruin-data/dac",
+    "version": "v0.7.0",
+    "asset": "dac-frontend.tar.gz"
+  },
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -230,6 +235,11 @@
           "type": "boolean",
           "default": true,
           "description": "Automatically update the Bruin CLI when a new version is available."
+        },
+        "bruin.dac.executable": {
+          "type": "string",
+          "default": "",
+          "description": "Full path to the 'dac' executable used by the Preview Dashboard command. Leave empty to discover it on PATH."
         }
       }
     },
@@ -282,6 +292,18 @@
         {
           "command": "bruin.renderSQL",
           "group": "navigation"
+        },
+        {
+          "command": "bruin.previewDashboard",
+          "group": "navigation",
+          "when": "resourceExtname == .yml || resourceExtname == .yaml"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "bruin.dacPreview.openInBrowser",
+          "group": "navigation",
+          "when": "activeWebviewPanelId == 'bruin.dacPreview'"
         }
       ],
       "editor/context": [
@@ -378,6 +400,20 @@
         "title": "Show Getting Started Walkthrough",
         "category": "Bruin",
         "description": "Show the Bruin getting started walkthrough."
+      },
+      {
+        "command": "bruin.previewDashboard",
+        "title": "Preview Dashboard",
+        "category": "Bruin",
+        "icon": "$(dashboard)",
+        "description": "Spawn `dac serve` on the current DAC project and preview it in a webview."
+      },
+      {
+        "command": "bruin.dacPreview.openInBrowser",
+        "title": "Open Dashboard in Browser",
+        "category": "Bruin",
+        "icon": "$(link-external)",
+        "description": "Open the current DAC dashboard in an external browser."
       }
     ],
     "keybindings": [
@@ -440,7 +476,9 @@
     "start:webview": "cd webview-ui && npm run start",
     "dev:watch": "concurrently -n EXTENSION,WEBVIEW -c yellow,blue \"tsc -watch -p ./\" \"cd webview-ui && npm run watch\"",
     "build:webview": "cd webview-ui && npm run build-only && node scripts/copy-codicons.js",
-    "vscode:prepublish": "npm run compile",
+    "copy:dac-spa": "node scripts/copy-dac-assets.js",
+    "fetch:dac-spa": "node scripts/fetch-dac-assets.js",
+    "vscode:prepublish": "npm run compile && npm run fetch:dac-spa",
     "selenium:setup-tests": "extest setup-tests",
     "selenium:run-tests:connections": "node webview-ui/scripts/copy-test-assets.js && extest setup-and-run './out/ui-test/connections-integration.test.js' --code_version 1.103.0 --code_settings settings.json --mocha_config .mocharc-ui.js",
     "selenium:run-tests:ingestr": "node webview-ui/scripts/copy-test-assets.js && extest setup-and-run './out/ui-test/ingestr-asset-ui-integration.test.js' --code_version 1.103.0 --code_settings settings.json --mocha_config .mocharc-ui.js",
@@ -474,6 +512,7 @@
     "eslint": "^8.57.0",
     "mocha": "^11.0.0",
     "prettier": "^3.2.5",
+    "tar": "^7.5.20",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.3",
     "vscode-extension-tester": "^8.2.0",
