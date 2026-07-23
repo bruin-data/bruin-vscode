@@ -1,6 +1,6 @@
 # Changelog
 ## [0.83.1]
-- Preview Dashboard now offers to install or update the `dac` CLI (and retries) when it's missing or older than the required version, instead of just failing.
+- Preview Dashboard offers to install or update `dac` when it's missing or outdated.
 
 ## [0.83.0]
 - Added a Dashboards-as-Code preview — open a dashboard YAML and click the Preview Dashboard button in the editor toolbar to render it in a theme-matched webview backed by `dac serve`, with live reload on edit and an Open-in-Browser button.

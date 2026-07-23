@@ -231,14 +231,35 @@ export class DacPreviewPanel {
     extensionUri: vscode.Uri,
     output: vscode.OutputChannel
   ): Promise<void> {
+    const svc = DacExecutableService.getInstance();
     try {
       await installDac();
-      DacExecutableService.getInstance().invalidateCache();
-      await DacPreviewPanel.open(documentUri, extensionUri);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       output.appendLine(`[dac] install failed: ${msg}`);
       vscode.window.showErrorMessage(`Bruin: dac install failed — ${msg}`);
+      return;
+    }
+    // The script installs to the default location. If the resolved binary is
+    // still missing/old it's because `bruin.dac.executable` pins another path
+    // that wins — retrying would just re-prompt, so point the user at the setting.
+    svc.invalidateCache();
+    const version = await svc.getVersion();
+    if (version && isDacVersionSupported(version)) {
+      await DacPreviewPanel.open(documentUri, extensionUri);
+      return;
+    }
+    const configured = vscode.workspace.getConfiguration("bruin").get<string>("dac.executable") || "";
+    const detail = configured
+      ? `\`bruin.dac.executable\` points to ${configured}, which overrides the installed dac`
+      : `the installed dac still isn't resolving`;
+    output.appendLine(`[dac] post-install still unsupported (version=${version}); ${detail}`);
+    const choice = await vscode.window.showWarningMessage(
+      `Bruin: dac installed, but ${detail}. Update or clear that setting, then run Preview Dashboard again.`,
+      "Open Settings"
+    );
+    if (choice === "Open Settings") {
+      await vscode.commands.executeCommand("workbench.action.openSettings", "bruin.dac.executable");
     }
   }
 
