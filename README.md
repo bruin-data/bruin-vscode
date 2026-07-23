@@ -89,6 +89,7 @@ After installing, run the **Bruin: Show Getting Started Walkthrough** command fr
 ## Release Notes
 
 ### Recent Update
+- **0.83.1**: Preview Dashboard now offers to install or update the `dac` CLI (and retries) when it's missing or older than the required version, instead of just failing.
 - **0.83.0**: Added a Dashboards-as-Code preview — open a dashboard YAML and click the Preview Dashboard button in the editor toolbar to render it in a theme-matched webview backed by `dac serve`, with live reload on edit and an Open-in-Browser button.
 - **0.82.6**: Made the asset lineage panel faster to open and switch, with column lineage loaded on demand and pipeline parses cached.
 - **0.82.5**: Fixed the Run dropdown being clipped on ingestr assets, and added a "Run with debug" option that runs the asset with `--debug`.
