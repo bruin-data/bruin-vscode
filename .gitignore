@@ -10,3 +10,6 @@ example.txt
 integration-test-coverage-analysis.csv
 generate-coverage-analysis.js
 real-coverage-calculator.js
+
+# dac's React SPA copied from dac repo (use scripts/copy-dac-assets.js)
+webview-ui/build/dac-spa

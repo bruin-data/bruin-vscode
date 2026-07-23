@@ -25,6 +25,8 @@ import { QueryPreviewPanel } from "../panels/QueryPreviewPanel";
 import { TableDiffPanel } from "../panels/TableDiffPanel";
 import { RunHistoryPanel } from "../panels/RunHistoryPanel";
 import { BruinPanel } from "../panels/BruinPanel";
+import { DacPreviewPanel } from "../panels/DacPreviewPanel";
+import { DacServerManager } from "../bruin/dacServe";
 import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
 import { ScheduleCodeLensProvider } from "../providers/scheduleCodeLensProvider";
 import { QuerySelectionCodeLensProvider } from "../providers/querySelectionCodeLensProvider";
@@ -94,13 +96,19 @@ export function trackEvent(eventName: string, properties: Record<string, any> = 
 
 async function ensureAutoLockEnabled(config: WorkspaceConfiguration): Promise<void> {
   const autoLockGroups: Record<string, boolean> = config.get("autoLockGroups") || {};
-  const viewTypeKey = `mainThreadWebview-${BruinPanel.viewId}`;
+  // Auto-lock the editor groups of our webview panels so opening a file doesn't
+  // hijack the panel's slot. Applies to the main side panel and the DAC preview.
+  const viewTypeKeys = [
+    `mainThreadWebview-${BruinPanel.viewId}`,
+    `mainThreadWebview-${DacPreviewPanel.viewType}`,
+  ];
 
-  if (!autoLockGroups[viewTypeKey]) {
-    const updatedAutoLockGroups = {
-      ...autoLockGroups,
-      [viewTypeKey]: true,
-    };
+  const missing = viewTypeKeys.filter((key) => !autoLockGroups[key]);
+  if (missing.length) {
+    const updatedAutoLockGroups = { ...autoLockGroups };
+    for (const key of missing) {
+      updatedAutoLockGroups[key] = true;
+    }
 
     try {
       await config.update("autoLockGroups", updatedAutoLockGroups, true);
@@ -618,6 +626,29 @@ export async function activate(context: ExtensionContext) {
         vscode.window.showErrorMessage(`Error triggering completions: ${errorMessage}`);
       }
     }),
+    commands.registerCommand("bruin.previewDashboard", async (uri?: vscode.Uri) => {
+      try {
+        trackEvent("Command Executed", { command: "previewDashboard", source: "user" });
+        const targetUri = uri ?? window.activeTextEditor?.document.uri;
+        if (!targetUri) {
+          vscode.window.showWarningMessage("Open a dashboard YAML file before running Preview Dashboard.");
+          return;
+        }
+        const ext = targetUri.fsPath.toLowerCase();
+        if (!ext.endsWith(".yml") && !ext.endsWith(".yaml")) {
+          vscode.window.showWarningMessage("Preview Dashboard only supports .yml / .yaml files.");
+          return;
+        }
+        await DacPreviewPanel.open(targetUri, context.extensionUri);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error previewing dashboard: ${errorMessage}`);
+      }
+    }),
+    commands.registerCommand("bruin.dacPreview.openInBrowser", () => {
+      trackEvent("Command Executed", { command: "dacPreviewOpenInBrowser", source: "user" });
+      DacPreviewPanel.openActiveInBrowser();
+    }),
     commands.registerCommand("bruin.showWalkthrough", async () => {
       try {
         trackEvent("Command Executed", { command: "showWalkthrough", source: "user" });
@@ -696,4 +727,6 @@ export function deactivate(): void {
     clearInterval(cliCheckInterval);
     cliCheckInterval = undefined;
   }
+  // Stop any running dac serve processes.
+  DacServerManager.disposeAll();
 }
