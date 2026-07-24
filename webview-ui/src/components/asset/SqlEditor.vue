@@ -181,6 +181,10 @@ const props = defineProps({
     type: String,
     default: 'Preview',
   },
+  filePath: {
+    type: String,
+    default: '',
+  },
 });
 
 const activeTab = ref('preview');
@@ -476,6 +480,19 @@ watch(
   () => props.showIntervalAlert,
   (newVal) => {
     showIntervalAlert.value = newVal;
+  }
+);
+
+// The editor stays mounted across asset switches now, so reset the DDL tab when
+// the active file changes — otherwise the previous asset's DDL would linger.
+watch(
+  () => props.filePath,
+  (newPath, oldPath) => {
+    if (newPath !== oldPath) {
+      activeTab.value = 'preview';
+      ddlContent.value = '';
+      ddlLoading.value = false;
+    }
   }
 );
 </script>

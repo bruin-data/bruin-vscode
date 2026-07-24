@@ -463,7 +463,7 @@
           <!-- SqlEditor handles both success and error cost display in its header -->
           <SqlEditor :code="code" :copied="false" :language="language" :showIntervalAlert="showIntervalAlert"
             :assetType="props.assetType" :bigqueryMetadata="bigqueryMetadata"
-            :bigqueryError="props.assetMetadataError" />
+            :bigqueryError="props.assetMetadataError" :filePath="props.filePath" />
           <div class="overflow-hidden w-full h-20"></div>
         </div>
         <div v-else class="overflow-hidden w-full h-40">
@@ -1401,18 +1401,7 @@ onMounted(() => {
     applyVariableOverrides.value = persistedState.applyVariableOverrides;
   }
   // Restore tags for the current pipeline (only if we have a valid file path)
-  try {
-    const currentFilePath = props.filePath;
-    if (currentFilePath && persistedState?.tagFiltersByPipeline?.[currentFilePath]) {
-      const pipelineTags = persistedState.tagFiltersByPipeline[currentFilePath];
-      if (Array.isArray(pipelineTags.includeTags)) {
-        includeTags.value = [...pipelineTags.includeTags];
-      }
-      if (Array.isArray(pipelineTags.excludeTags)) {
-        excludeTags.value = [...pipelineTags.excludeTags];
-      }
-    }
-  } catch (_) { }
+  restoreTagFiltersForCurrentFile();
 
   sendInitialMessage();
   window.addEventListener("message", receiveMessage);
@@ -1556,6 +1545,14 @@ watch(
       requestTimeout = null;
     }
     isRequestingVariables.value = false;
+    // The panel no longer remounts on asset switch (to avoid flicker), so the
+    // per-file setup that used to run in onMounted is re-run here: reload this
+    // pipeline's tag filters and request a fresh render so the SQL preview
+    // updates in place instead of showing the previous asset's code.
+    if (newPath && newPath !== oldPath) {
+      restoreTagFiltersForCurrentFile();
+      sendInitialMessage();
+    }
   }
 );
 
@@ -1578,6 +1575,28 @@ watch(
   },
   { immediate: true }
 );
+// Restore the include/exclude tag filters persisted for the current pipeline
+// file. Called on mount and whenever the active asset changes.
+function restoreTagFiltersForCurrentFile() {
+  try {
+    const currentFilePath = props.filePath;
+    const persistedState = (vscode.getState() as {
+      tagFiltersByPipeline?: Record<string, { includeTags: string[]; excludeTags: string[] }>;
+    }) || {};
+    const pipelineTags = currentFilePath
+      ? persistedState?.tagFiltersByPipeline?.[currentFilePath]
+      : undefined;
+    if (pipelineTags) {
+      includeTags.value = Array.isArray(pipelineTags.includeTags) ? [...pipelineTags.includeTags] : [];
+      excludeTags.value = Array.isArray(pipelineTags.excludeTags) ? [...pipelineTags.excludeTags] : [];
+    } else {
+      // No saved filters for this file: clear any carried over from the previous asset.
+      includeTags.value = [];
+      excludeTags.value = [];
+    }
+  } catch (_) { }
+}
+
 function sendInitialMessage() {
   const checkboxState = checkboxItems.value.reduce(
     (acc, item) => {
@@ -2121,7 +2140,9 @@ function receiveMessage(event: { data: any }) {
       if (renderSQLAssetSuccess.value) {
         code.value = renderSQLAssetSuccess.value;
         language.value = "sql";
-      } else if (!renderPythonAsset.value) {
+      } else {
+        // No SQL to preview (python/non-asset/empty): clear so the previous
+        // asset's rendered SQL isn't left on screen after an in-place switch.
         code.value = null;
         language.value = "";
       }

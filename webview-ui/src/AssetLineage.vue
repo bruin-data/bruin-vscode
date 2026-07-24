@@ -39,9 +39,13 @@ const handleMessage = (event) => {
   
   switch (message.command) {
     case "flow-lineage-loading":
-      // A new parse started (file switch / edit): show loading instead of the
-      // previous graph so stale content isn't left on screen.
-      isReloading.value = true;
+      // A new parse started (file switch / edit). Only fall back to the loading
+      // spinner when there's nothing to show yet; if we already have a graph,
+      // keep it on screen and let the incoming data swap it in place so the
+      // switch is smooth instead of blanking to a spinner.
+      if (!lineageData.value) {
+        isReloading.value = true;
+      }
       lineageError.value = undefined;
       return;
     case "flow-lineage-message":
