@@ -1,0 +1,70 @@
+name: Sync dac frontend
+
+# Bumps package.json `dacFrontend.version` to the latest bruin-data/dac release and
+# opens a PR when it changed. The embedded dac SPA is fetched from this pin at publish
+# time (scripts/fetch-dac-assets.js). Runs weekly and on demand.
+#
+# This intentionally does NOT touch MIN_DAC_VERSION in src/providers/DacExecutableService.ts —
+# that is a deliberate minimum-version floor for a dac feature, not a "track latest" pin.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bump dacFrontend.version to the latest dac release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          REPO=$(node -p "require('./package.json').dacFrontend.repo")
+          ASSET=$(node -p "require('./package.json').dacFrontend.asset || 'dac-frontend.tar.gz'")
+          CURRENT=$(node -p "require('./package.json').dacFrontend.version")
+          LATEST=$(gh api "repos/${REPO}/releases/latest" --jq .tag_name)
+          echo "current=$CURRENT latest=$LATEST"
+
+          if [ "$CURRENT" = "$LATEST" ]; then
+            echo "Already on the latest dac release; nothing to do."
+            exit 0
+          fi
+
+          # Fail before opening a PR if the release is missing the frontend asset,
+          # so a bad pin never lands (the extension build fetches this asset).
+          URL="https://github.com/${REPO}/releases/download/${LATEST}/${ASSET}"
+          if ! curl -fsIL "$URL" >/dev/null; then
+            echo "::error::Release ${LATEST} has no asset ${ASSET} at ${URL}"
+            exit 1
+          fi
+
+          # Surgical text edit so only the version line changes (JSON.stringify would
+          # reformat the whole file and produce a noisy diff).
+          export LATEST
+          node -e '
+            const fs = require("fs");
+            const p = "package.json";
+            const text = fs.readFileSync(p, "utf8");
+            const next = text.replace(
+              /("dacFrontend"\s*:\s*\{[^}]*?"version"\s*:\s*")[^"]+(")/,
+              `$1${process.env.LATEST}$2`
+            );
+            if (next === text) throw new Error("Could not find dacFrontend.version to update");
+            fs.writeFileSync(p, next);
+          '
+          echo "LATEST=$LATEST" >> "$GITHUB_ENV"
+
+      - name: Open PR if the pin changed
+        uses: peter-evans/create-pull-request@v7.0.8
+        with:
+          commit-message: "chore: bump dac frontend to ${{ env.LATEST }}"
+          title: "chore: bump dac frontend to ${{ env.LATEST }}"
+          body: "Automated: updated `package.json` `dacFrontend.version` to the latest `bruin-data/dac` release. The release asset was confirmed to exist before this PR was opened."
+          branch: bot/sync-dac-frontend
+          delete-branch: true
