@@ -396,7 +396,7 @@ export class BruinPanel {
 
   public static postMessage(
     name: string,
-    data: string | { status: string; message: string | any },
+    data: string | { status: string; message: string | any; [key: string]: any },
     panelType?: string
   ) {
     if (BruinPanel.currentPanel?._panel) {
@@ -714,14 +714,16 @@ export class BruinPanel {
               this._panel.webview.postMessage({
                 command: "ddlResponse",
                 status: "success",
-                ddl
+                ddl,
+                filePath
               });
             } catch (error) {
               const errorMessage = error instanceof Error ? error.message : String(error);
               this._panel.webview.postMessage({
                 command: "ddlResponse",
                 status: "error",
-                message: `Failed to generate DDL: ${errorMessage}`
+                message: `Failed to generate DDL: ${errorMessage}`,
+                filePath: this._lastRenderedDocumentUri?.fsPath
               });
             }
             break;

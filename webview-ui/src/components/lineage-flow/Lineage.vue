@@ -805,11 +805,26 @@ watch(
   { immediate: false }
 );
 
+// Clear every view's graph. Used when the new target has no lineage (error or
+// empty parse) so the previous asset's graph isn't left visible in place.
+const clearAllGraphs = () => {
+  setNodes([]);
+  setEdges([]);
+  pipelineElements.value = { nodes: [], edges: [] };
+  columnElements.value = { nodes: [], edges: [] };
+};
+
 watch(
   () => [props.assetDataset, props.pipelineData],
   () => {
     const key = computeTargetKey();
-    if (!props.assetDataset) return;
+    if (!props.assetDataset) {
+      // The replacement asset produced no lineage: drop the stale graph rather
+      // than leaving the previous asset's nodes under the current file.
+      clearAllGraphs();
+      lastViewKey = "";
+      return;
+    }
 
     if (key !== lastViewKey) {
       // Switched target: reset to its default view.

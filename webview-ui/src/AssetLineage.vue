@@ -25,6 +25,10 @@ const lineageData = ref(); // Holds the lineage data received from the extension
 const lineageError = ref(); // Holds any errors related to lineage data
 const hasTimedOut = ref(false); // Tracks if initial load has timed out
 const isReloading = ref(false); // A new parse is in flight (file switch / edit)
+// True while an asset switch is in flight (the panel only sends the loading
+// signal on a real file change). Lets us tell a switch apart from a same-file
+// re-parse so a failed switch drops the graph while a same-file error keeps it.
+const switchPending = ref(false);
 
 let lastMessageId: string | null = null;
 
@@ -39,10 +43,11 @@ const handleMessage = (event) => {
   
   switch (message.command) {
     case "flow-lineage-loading":
-      // A new parse started (file switch / edit). Only fall back to the loading
-      // spinner when there's nothing to show yet; if we already have a graph,
-      // keep it on screen and let the incoming data swap it in place so the
-      // switch is smooth instead of blanking to a spinner.
+      // A real file switch started (this signal is only sent on a file change).
+      // Only fall back to the loading spinner when there's nothing to show yet;
+      // if we already have a graph, keep it on screen and let the incoming data
+      // swap it in place so the switch is smooth instead of blanking.
+      switchPending.value = true;
       if (!lineageData.value) {
         isReloading.value = true;
       }
@@ -67,8 +72,18 @@ const handleMessage = (event) => {
         return;
       }
       lastMessageId = messageId;
-      
-      lineageData.value = newData;
+
+      const wasSwitch = switchPending.value;
+      switchPending.value = false;
+
+      if (newData || wasSwitch) {
+        // Valid data, or a switch that failed: adopt the result (null on a
+        // failed switch clears the previous asset's graph so it isn't left
+        // showing under the new file).
+        lineageData.value = newData;
+      }
+      // Otherwise this is a same-file re-parse that errored — keep the last
+      // good graph on screen and just surface the error.
       lineageError.value = newError;
       break;
   }

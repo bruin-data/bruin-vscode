@@ -449,6 +449,12 @@ const handleMessage = (event) => {
   console.log('SqlEditor received message:', envelope);
   
   if (envelope.command === 'ddlResponse') {
+    // The editor persists across asset switches, so ignore a DDL response that
+    // resolved for a previously active file — otherwise it would populate the
+    // current asset's tab with stale DDL and suppress the correct request.
+    if (envelope.filePath && props.filePath && envelope.filePath !== props.filePath) {
+      return;
+    }
     console.log('Processing DDL response:', envelope);
     handleDdlResponse(envelope);
   }

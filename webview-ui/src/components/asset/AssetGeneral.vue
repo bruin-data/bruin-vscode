@@ -490,6 +490,7 @@ import {
   concatCommandFlags,
   adjustEndDateForExclusive,
   resetStartEndDate,
+  normalizePath,
 } from "@/utilities/helper";
 import "@/assets/index.css";
 import DateInput from "@/components/ui/date-inputs/DateInput.vue";
@@ -2131,6 +2132,16 @@ function receiveMessage(event: { data: any }) {
       isNotAsset.value = true;
       break;
     case "render-message":
+      // The component now persists across asset switches, so ignore render
+      // responses tagged for a different file — a slow render for the previous
+      // asset must not overwrite the current asset's preview.
+      if (
+        envelope.payload?.filePath &&
+        props.filePath &&
+        normalizePath(envelope.payload.filePath) !== normalizePath(props.filePath)
+      ) {
+        break;
+      }
       renderSQLAssetSuccess.value = updateValue(envelope, "success");
       renderSQLAssetError.value = updateValue(envelope, "error");
       renderPythonAsset.value = updateValue(envelope, "bruin-asset-alert");
