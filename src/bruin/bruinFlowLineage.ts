@@ -147,6 +147,7 @@ export class BruinLineageInternalParse extends BruinCommand {
         updateLineageData({
           status: "success",
           message: lineageData,
+          filePath,
         });
       } else {
         // For individual assets, find the specific asset
@@ -169,6 +170,7 @@ export class BruinLineageInternalParse extends BruinCommand {
           updateLineageData({
             status: "success",
             message: lineageData,
+            filePath,
           });
         } else {
           throw new Error("Asset not found in pipeline data");
@@ -185,11 +187,13 @@ export class BruinLineageInternalParse extends BruinCommand {
         updateLineageData({
           status: "error",
           message: formattedError,
+          filePath,
         });
       } else {
         updateLineageData({
           status: "error",
           message: errorMessage,
+          filePath,
         });
       }
   

@@ -1,4 +1,7 @@
 # Changelog
+## [0.83.2]
+- Switching assets updates the SQL editor and lineage in place instead of reloading.
+
 ## [0.83.1]
 - Preview Dashboard offers to install or update `dac` when it's missing or below the required version.
 

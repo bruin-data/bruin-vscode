@@ -25,10 +25,12 @@ const lineageData = ref(); // Holds the lineage data received from the extension
 const lineageError = ref(); // Holds any errors related to lineage data
 const hasTimedOut = ref(false); // Tracks if initial load has timed out
 const isReloading = ref(false); // A new parse is in flight (file switch / edit)
-// True while an asset switch is in flight (the panel only sends the loading
-// signal on a real file change). Lets us tell a switch apart from a same-file
-// re-parse so a failed switch drops the graph while a same-file error keeps it.
-const switchPending = ref(false);
+// The file whose parse we're now waiting on (from the loading signal, sent only
+// on a real file change) and the file currently drawn. Correlating responses by
+// path — rather than a shared flag — means an out-of-order response for an older
+// asset can't be mistaken for the current one when loads overlap.
+let expectedFile: string | undefined;
+let displayedFile: string | undefined;
 
 let lastMessageId: string | null = null;
 
@@ -44,20 +46,26 @@ const handleMessage = (event) => {
   switch (message.command) {
     case "flow-lineage-loading":
       // A real file switch started (this signal is only sent on a file change).
-      // Only fall back to the loading spinner when there's nothing to show yet;
-      // if we already have a graph, keep it on screen and let the incoming data
-      // swap it in place so the switch is smooth instead of blanking.
-      switchPending.value = true;
+      // Remember the target so we can correlate the eventual response. Only fall
+      // back to the loading spinner when there's nothing to show yet; if we
+      // already have a graph, keep it on screen and swap in place.
+      expectedFile = message.filePath;
       if (!lineageData.value) {
         isReloading.value = true;
       }
       lineageError.value = undefined;
       return;
     case "flow-lineage-message":
+      const responseFile = message.payload?.filePath;
+      // Drop a response for a file we're no longer waiting on — an out-of-order
+      // result from a previous asset must not touch the current graph/state.
+      if (expectedFile && responseFile && responseFile !== expectedFile) {
+        return;
+      }
       isReloading.value = false;
       const newData = updateValue(message, "success");
       const newError = updateValue(message, "error");
-      
+
       // Create a detailed hash to detect truly identical messages
       const messageId = JSON.stringify({ 
         assetId: newData?.id, 
@@ -73,17 +81,16 @@ const handleMessage = (event) => {
       }
       lastMessageId = messageId;
 
-      const wasSwitch = switchPending.value;
-      switchPending.value = false;
-
-      if (newData || wasSwitch) {
-        // Valid data, or a switch that failed: adopt the result (null on a
-        // failed switch clears the previous asset's graph so it isn't left
-        // showing under the new file).
+      // A response for a different file than what's drawn is a switch; on
+      // failure that must drop the previous asset's graph. A same-file re-parse
+      // that errors keeps the last good graph and just surfaces the error.
+      const isSwitch = !displayedFile || (responseFile && responseFile !== displayedFile);
+      if (newData || isSwitch) {
         lineageData.value = newData;
       }
-      // Otherwise this is a same-file re-parse that errored — keep the last
-      // good graph on screen and just surface the error.
+      if (responseFile) {
+        displayedFile = responseFile;
+      }
       lineageError.value = newError;
       break;
   }
