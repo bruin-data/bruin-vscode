@@ -2,11 +2,11 @@ name: Sync config-schema
 
 # Regenerates every connection type in schemas/config-schema.json from the Bruin CLI
 # (`bruin internal connections`) on each run, so new types and changed fields are picked
-# up automatically. Runs weekly and on demand; opens a PR when something changed.
+# up automatically. Runs daily and on demand; opens a PR when something changed.
 
 on:
   schedule:
-    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+    - cron: "0 6 * * *" # daily 06:00 UTC
   workflow_dispatch:
 
 jobs:
