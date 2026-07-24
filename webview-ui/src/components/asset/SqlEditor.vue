@@ -153,7 +153,7 @@ import "highlight.js/styles/default.css";
 import hljs from "highlight.js/lib/core";
 import { DynamicScroller, DynamicScrollerItem } from "vue3-virtual-scroller";
 import "vue3-virtual-scroller/dist/vue3-virtual-scroller.css";
-import { formatBytes, calculateBigQueryCost } from "@/utilities/helper";
+import { formatBytes, calculateBigQueryCost, normalizePath } from "@/utilities/helper";
 import { vscode } from "@/utilities/vscode";
 
 const props = defineProps({
@@ -452,7 +452,11 @@ const handleMessage = (event) => {
     // The editor persists across asset switches, so ignore a DDL response that
     // resolved for a previously active file — otherwise it would populate the
     // current asset's tab with stale DDL and suppress the correct request.
-    if (envelope.filePath && props.filePath && envelope.filePath !== props.filePath) {
+    if (
+      envelope.filePath &&
+      props.filePath &&
+      normalizePath(envelope.filePath) !== normalizePath(props.filePath)
+    ) {
       return;
     }
     console.log('Processing DDL response:', envelope);

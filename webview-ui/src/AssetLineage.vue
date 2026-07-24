@@ -12,7 +12,7 @@
 <script setup lang="ts">
 import Lineage from "@/components/lineage-flow/Lineage.vue";
 import { ref, onUnmounted, computed, watch, onMounted } from "vue";
-import { updateValue } from "./utilities/helper";
+import { updateValue, normalizePath } from "./utilities/helper";
 import { getAssetDataset } from "@/components/lineage-flow/asset-lineage/useAssetLineage";
 
 /**
@@ -59,7 +59,13 @@ const handleMessage = (event) => {
       const responseFile = message.payload?.filePath;
       // Drop a response for a file we're no longer waiting on — an out-of-order
       // result from a previous asset must not touch the current graph/state.
-      if (expectedFile && responseFile && responseFile !== expectedFile) {
+      // Compare normalized paths so Windows/macOS case and separator differences
+      // don't wrongly reject a matching response.
+      if (
+        expectedFile &&
+        responseFile &&
+        normalizePath(responseFile) !== normalizePath(expectedFile)
+      ) {
         return;
       }
       isReloading.value = false;
@@ -84,7 +90,9 @@ const handleMessage = (event) => {
       // A response for a different file than what's drawn is a switch; on
       // failure that must drop the previous asset's graph. A same-file re-parse
       // that errors keeps the last good graph and just surfaces the error.
-      const isSwitch = !displayedFile || (responseFile && responseFile !== displayedFile);
+      const isSwitch =
+        !displayedFile ||
+        (responseFile && normalizePath(responseFile) !== normalizePath(displayedFile));
       if (newData || isSwitch) {
         lineageData.value = newData;
       }
