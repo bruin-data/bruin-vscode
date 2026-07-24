@@ -118,7 +118,7 @@
         <component
           v-if="isTabActive(index)"
           :is="tab.component"
-          :key="`${index}-${lastRenderedDocument}`"
+          :key="`tab-view-${index}`"
           v-bind="tab.props"
           class="flex w-full h-full"
           @update:description="updateDescription"

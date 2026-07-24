@@ -153,7 +153,7 @@ import "highlight.js/styles/default.css";
 import hljs from "highlight.js/lib/core";
 import { DynamicScroller, DynamicScrollerItem } from "vue3-virtual-scroller";
 import "vue3-virtual-scroller/dist/vue3-virtual-scroller.css";
-import { formatBytes, calculateBigQueryCost } from "@/utilities/helper";
+import { formatBytes, calculateBigQueryCost, normalizePath } from "@/utilities/helper";
 import { vscode } from "@/utilities/vscode";
 
 const props = defineProps({
@@ -180,6 +180,10 @@ const props = defineProps({
   previewLabel: {
     type: String,
     default: 'Preview',
+  },
+  filePath: {
+    type: String,
+    default: '',
   },
 });
 
@@ -445,6 +449,16 @@ const handleMessage = (event) => {
   console.log('SqlEditor received message:', envelope);
   
   if (envelope.command === 'ddlResponse') {
+    // The editor persists across asset switches, so ignore a DDL response that
+    // resolved for a previously active file — otherwise it would populate the
+    // current asset's tab with stale DDL and suppress the correct request.
+    if (
+      envelope.filePath &&
+      props.filePath &&
+      normalizePath(envelope.filePath) !== normalizePath(props.filePath)
+    ) {
+      return;
+    }
     console.log('Processing DDL response:', envelope);
     handleDdlResponse(envelope);
   }
@@ -476,6 +490,19 @@ watch(
   () => props.showIntervalAlert,
   (newVal) => {
     showIntervalAlert.value = newVal;
+  }
+);
+
+// The editor stays mounted across asset switches now, so reset the DDL tab when
+// the active file changes — otherwise the previous asset's DDL would linger.
+watch(
+  () => props.filePath,
+  (newPath, oldPath) => {
+    if (newPath !== oldPath) {
+      activeTab.value = 'preview';
+      ddlContent.value = '';
+      ddlLoading.value = false;
+    }
   }
 );
 </script>

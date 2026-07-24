@@ -396,7 +396,7 @@ export class BruinPanel {
 
   public static postMessage(
     name: string,
-    data: string | { status: string; message: string | any },
+    data: string | { status: string; message: string | any; [key: string]: any },
     panelType?: string
   ) {
     if (BruinPanel.currentPanel?._panel) {
@@ -689,39 +689,44 @@ export class BruinPanel {
               break;
             }
 
+            // Capture the request's path up front so a failure is tagged with
+            // the file it was requested for, not whatever is active by the time
+            // it rejects (the user may have switched assets in between).
+            const ddlFilePath = this._lastRenderedDocumentUri.fsPath;
             try {
               const ddlRenderer = new BruinRenderDdl(
                 getBruinExecutablePath(),
                 vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || ""
               );
-              
-              const filePath = this._lastRenderedDocumentUri.fsPath;
+
               const flagArgs: string[] = [];
-              
+
               if (this._currentStartDate) {
                 flagArgs.push("--start-date", this._currentStartDate);
               }
-              
+
               if (this._currentEndDate) {
                 flagArgs.push("--end-date", this._currentEndDate);
               }
-              
+
               if (this._checkboxState?.["Interval-modifiers"]) {
                 flagArgs.push("--apply-interval-modifiers");
               }
-              
-              const ddl = await ddlRenderer.renderDdl(filePath, flagArgs, false);
+
+              const ddl = await ddlRenderer.renderDdl(ddlFilePath, flagArgs, false);
               this._panel.webview.postMessage({
                 command: "ddlResponse",
                 status: "success",
-                ddl
+                ddl,
+                filePath: ddlFilePath
               });
             } catch (error) {
               const errorMessage = error instanceof Error ? error.message : String(error);
               this._panel.webview.postMessage({
                 command: "ddlResponse",
                 status: "error",
-                message: `Failed to generate DDL: ${errorMessage}`
+                message: `Failed to generate DDL: ${errorMessage}`,
+                filePath: ddlFilePath
               });
             }
             break;

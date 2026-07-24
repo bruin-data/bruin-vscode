@@ -526,11 +526,16 @@ const fitViewSmooth = async (forceAutoFit = false, useAnimation = false) => {
 
 const _updateGraph = async () => {
   if (!showPipelineView.value && !showColumnView.value) {
-    isLoadingLocal.value = true;
-    isLayouting.value = true;
-    // Clear the previous asset's graph so it isn't shown while this builds.
-    setNodes([]);
-    setEdges([]);
+    // Keep any existing graph on screen while the new one is laid out so an
+    // asset switch swaps in place instead of flashing an empty canvas/spinner.
+    // Only show the loading state (and clear) when there's nothing to show yet.
+    const hasExistingGraph = nodes.value.length > 0;
+    if (!hasExistingGraph) {
+      isLoadingLocal.value = true;
+      isLayouting.value = true;
+      setNodes([]);
+      setEdges([]);
+    }
 
     const gen = ++buildGeneration;
     try {
@@ -600,10 +605,9 @@ const processProperties = async () => {
   
   // Don't set loading states here - let _updateGraph handle it
   error.value = null;
-  // updateGraph is debounced, so clear the previous asset's graph now to avoid
-  // showing it for the debounce window before the new one is built.
-  setNodes([]);
-  setEdges([]);
+  // Keep the previous graph on screen through the debounce window; _updateGraph
+  // swaps in the new layout in place (and only clears when there's nothing to
+  // show yet), so switching assets no longer flashes an empty canvas.
   console.log('🔄 [Lineage] Starting graph update');
   try {
     await updateGraph();
@@ -801,11 +805,26 @@ watch(
   { immediate: false }
 );
 
+// Clear every view's graph. Used when the new target has no lineage (error or
+// empty parse) so the previous asset's graph isn't left visible in place.
+const clearAllGraphs = () => {
+  setNodes([]);
+  setEdges([]);
+  pipelineElements.value = { nodes: [], edges: [] };
+  columnElements.value = { nodes: [], edges: [] };
+};
+
 watch(
   () => [props.assetDataset, props.pipelineData],
   () => {
     const key = computeTargetKey();
-    if (!props.assetDataset) return;
+    if (!props.assetDataset) {
+      // The replacement asset produced no lineage: drop the stale graph rather
+      // than leaving the previous asset's nodes under the current file.
+      clearAllGraphs();
+      lastViewKey = "";
+      return;
+    }
 
     if (key !== lastViewKey) {
       // Switched target: reset to its default view.

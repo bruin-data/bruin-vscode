@@ -58,6 +58,7 @@ export class BruinRender extends BruinCommand {
       BruinPanel?.postMessage("render-message", {
         status: "non-asset-alert",
         message: "-- This is not a BRUIN asset --",
+        filePath,
       });
       console.log("This is not a BRUIN asset");
       return;
@@ -69,6 +70,7 @@ export class BruinRender extends BruinCommand {
       BruinPanel?.postMessage("render-message", {
         status: "bruin-asset-alert",
         message: "-- Python, Yaml, or Pipeline BRUIN asset detected --",
+        filePath,
       });
       return;
     }
@@ -81,6 +83,7 @@ export class BruinRender extends BruinCommand {
             BruinPanel?.postMessage("render-message", {
               status: "success",
               message: parsed.query,
+              filePath,
             });
           } catch (parseErr) {
             console.error("Invalid JSON from bruin render output", parseErr);
@@ -91,6 +94,7 @@ export class BruinRender extends BruinCommand {
               BruinPanel?.postMessage("render-message", {
                 status: "error",
                 message: this.parseError(fallbackErr),
+                filePath,
               });
             }
           }
@@ -101,7 +105,8 @@ export class BruinRender extends BruinCommand {
         setTimeout(() => {
           BruinPanel?.postMessage("render-message", {
             status: "error",
-            message: this.parseError(error)
+            message: this.parseError(error),
+            filePath,
           });
         }, 1000);
     
@@ -143,6 +148,7 @@ export class BruinRender extends BruinCommand {
       BruinPanel?.postMessage("render-message", {
         status: "non-asset-alert",
         message: "-- This is not a BRUIN asset --",
+        filePath,
       });
       console.log("This is not a BRUIN asset");
       return false;
@@ -161,6 +167,7 @@ export class BruinRender extends BruinCommand {
       BruinPanel?.postMessage("render-message", {
         status: "bruin-asset-alert",
         message: "-- Python or Yaml BRUIN asset detected --",
+        filePath,
       });
       console.log("Python or Yaml BRUIN asset detected");
       return true;
@@ -182,6 +189,7 @@ export class BruinRender extends BruinCommand {
         BruinPanel?.postMessage("render-message", {
           status: "success",
           message: result,
+          filePath,
         });
       },
       (err) => {
@@ -189,6 +197,7 @@ export class BruinRender extends BruinCommand {
         BruinPanel?.postMessage("render-message", {
           status: "error",
           message: JSON.stringify({ error: err }),
+          filePath,
         });
         console.error("Error rendering SQL asset without JSON", err);
       }

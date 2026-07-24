@@ -89,6 +89,7 @@ After installing, run the **Bruin: Show Getting Started Walkthrough** command fr
 ## Release Notes
 
 ### Recent Update
+- **0.83.2**: Switching assets updates the SQL editor and lineage in place instead of reloading.
 - **0.83.1**: Preview Dashboard offers to install or update `dac` when it's missing or below the required version.
 - **0.83.0**: Added a Dashboards-as-Code preview — open a dashboard YAML and click the Preview Dashboard button in the editor toolbar to render it in a theme-matched webview backed by `dac serve`, with live reload on edit and an Open-in-Browser button.
 - **0.82.6**: Made the asset lineage panel faster to open and switch, with column lineage loaded on demand and pipeline parses cached.

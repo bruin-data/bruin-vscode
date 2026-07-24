@@ -189,6 +189,7 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
       this._view.webview.postMessage({
         command: "flow-lineage-loading",
         panelType: this.panelType,
+        filePath: this._lastRenderedDocumentUri?.fsPath,
       });
     }
   }

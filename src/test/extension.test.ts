@@ -4262,7 +4262,8 @@ suite(" Query export Tests", () => {
             id: "asset-1",
             name: "test-asset",
             pipeline: JSON.stringify(mockPipelineData)
-          }
+          },
+          filePath
         });
       });
 
@@ -4294,7 +4295,8 @@ suite(" Query export Tests", () => {
         sinon.assert.calledWith(showErrorMessageStub, "Bruin CLI command not recognized. Please check that Bruin CLI is installed and the command is correct.");
         sinon.assert.calledWith(updateLineageDataStub, {
           status: "error",
-          message: "Bruin CLI command not recognized. Please check that Bruin CLI is installed and the command is correct."
+          message: "Bruin CLI command not recognized. Please check that Bruin CLI is installed and the command is correct.",
+          filePath
         });
       });
 
@@ -4310,7 +4312,8 @@ suite(" Query export Tests", () => {
         
         sinon.assert.calledWith(updateLineageDataStub, {
           status: "error",
-          message: "String error message"
+          message: "String error message",
+          filePath
         });
       });
 
@@ -4326,7 +4329,8 @@ suite(" Query export Tests", () => {
         
         sinon.assert.calledWith(updateLineageDataStub, {
           status: "error",
-          message: "Object error message"
+          message: "Object error message",
+          filePath
         });
       });
 
