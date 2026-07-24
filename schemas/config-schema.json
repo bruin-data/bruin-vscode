@@ -92,6 +92,31 @@
                 "api_key"
             ]
         },
+        "AdaptyConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "lookback_days": {
+                    "type": "integer"
+                },
+                "timezone": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
         "AdjustConnection": {
             "properties": {
                 "name": {
@@ -963,6 +988,12 @@
                     },
                     "type": "array"
                 },
+                "adapty": {
+                    "items": {
+                        "$ref": "#/definitions/AdaptyConnection"
+                    },
+                    "type": "array"
+                },
                 "anthropic": {
                     "items": {
                         "$ref": "#/definitions/AnthropicConnection"
@@ -1209,6 +1240,12 @@
                     },
                     "type": "array"
                 },
+                "iceberg": {
+                    "items": {
+                        "$ref": "#/definitions/IcebergConnection"
+                    },
+                    "type": "array"
+                },
                 "sharepoint": {
                     "items": {
                         "$ref": "#/definitions/SharePointConnection"
@@ -1260,6 +1297,12 @@
                 "fastspring": {
                     "items": {
                         "$ref": "#/definitions/FastspringConnection"
+                    },
+                    "type": "array"
+                },
+                "payrails": {
+                    "items": {
+                        "$ref": "#/definitions/PayrailsConnection"
                     },
                     "type": "array"
                 },
@@ -1596,6 +1639,12 @@
                 "surveymonkey": {
                     "items": {
                         "$ref": "#/definitions/SurveyMonkeyConnection"
+                    },
+                    "type": "array"
+                },
+                "typeform": {
+                    "items": {
+                        "$ref": "#/definitions/TypeformConnection"
                     },
                     "type": "array"
                 },
@@ -2659,6 +2708,9 @@
                 "service_account_file": {
                     "type": "string"
                 },
+                "access_token": {
+                    "type": "string"
+                },
                 "project_id": {
                     "type": "string"
                 },
@@ -2864,6 +2916,149 @@
             "required": [
                 "name",
                 "token"
+            ]
+        },
+        "IcebergAuth": {
+            "properties": {
+                "access_key": {
+                    "type": "string"
+                },
+                "secret_key": {
+                    "type": "string"
+                },
+                "session_token": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object"
+        },
+        "IcebergCatalog": {
+            "properties": {
+                "type": {
+                    "type": "string"
+                },
+                "catalog_id": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "database": {
+                    "type": "string"
+                },
+                "auth": {
+                    "$ref": "#/definitions/IcebergAuth"
+                },
+                "credential": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "uri": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "type"
+            ]
+        },
+        "IcebergConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "catalog_name": {
+                    "type": "string"
+                },
+                "catalog": {
+                    "$ref": "#/definitions/IcebergCatalog"
+                },
+                "storage": {
+                    "$ref": "#/definitions/IcebergStorage"
+                },
+                "create_namespace": {
+                    "type": "boolean"
+                },
+                "table_location": {
+                    "type": "string"
+                },
+                "table_path": {
+                    "type": "string"
+                },
+                "table_properties": {
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "type": "object"
+                },
+                "properties": {
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "type": "object"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "catalog",
+                "storage"
+            ]
+        },
+        "IcebergStorage": {
+            "properties": {
+                "type": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "bucket": {
+                    "type": "string"
+                },
+                "prefix": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "endpoint": {
+                    "type": "string"
+                },
+                "use_ssl": {
+                    "type": "boolean"
+                },
+                "auth": {
+                    "$ref": "#/definitions/IcebergAuth"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "type"
             ]
         },
         "IndeedConnection": {
@@ -3586,6 +3781,47 @@
             "required": [
                 "name",
                 "api_key"
+            ]
+        },
+        "PayrailsConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "client_secret": {
+                    "type": "string"
+                },
+                "cert_path": {
+                    "type": "string"
+                },
+                "key_path": {
+                    "type": "string"
+                },
+                "cert": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "environment": {
+                    "type": "string"
+                },
+                "base_url": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "client_id",
+                "client_secret"
             ]
         },
         "PersonioConnection": {
@@ -4380,6 +4616,9 @@
                 },
                 "max_files": {
                     "type": "integer"
+                },
+                "download_timeout": {
+                    "type": "string"
                 }
             },
             "additionalProperties": false,
@@ -4721,6 +4960,12 @@
                 },
                 "session_token": {
                     "type": "string"
+                },
+                "connection_string": {
+                    "type": "string"
+                },
+                "account_name": {
+                    "type": "string"
                 }
             },
             "additionalProperties": false,
@@ -5026,6 +5271,28 @@
             "required": [
                 "name",
                 "account_sid"
+            ]
+        },
+        "TypeformConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "token"
             ]
         },
         "VerticaConnection": {
