@@ -331,6 +331,7 @@ const AVAILABLE_DESTINATIONS = [
   { value: 'bigquery', label: 'Google BigQuery' },
   { value: 'gcs', label: 'Google Cloud Storage' },
   { value: 'gsheets', label: 'Google Sheets' },
+  { value: 'iceberg', label: 'Apache Iceberg' },
   { value: 'mongo_atlas', label: 'MongoDB Atlas' },
   { value: 'motherduck', label: 'MotherDuck' },
   { value: 'mssql', label: 'Microsoft SQL Server' },
