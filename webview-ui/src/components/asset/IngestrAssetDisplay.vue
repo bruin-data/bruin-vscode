@@ -353,7 +353,8 @@ const INCREMENTAL_STRATEGIES = [
   { value: 'replace', label: 'Replace' },
   { value: 'append', label: 'Append' },
   { value: 'merge', label: 'Merge' },
-  { value: 'delete+insert', label: 'Delete + Insert' }
+  { value: 'delete+insert', label: 'Delete + Insert' },
+  { value: 'scd2', label: 'SCD2' }
 ] as const;
 
 import assetsSchema from '../../../../schemas/yaml-assets-schema.json';

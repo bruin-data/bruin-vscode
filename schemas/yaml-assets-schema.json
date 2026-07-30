@@ -217,7 +217,8 @@
                 "merge",
                 "replace",
                 "append",
-                "scd2"
+                "scd2",
+                "none"
               ]
             },
             "incremental_key": {
@@ -501,12 +502,16 @@
       "enum": [
         "create+replace",
         "delete+insert",
+        "truncate+insert",
         "append",
         "merge",
+        "time_interval",
         "ddl",
-        "truncate+insert",
+        "scd2_by_time",
         "scd2_by_column",
-        "scd2_by_time"
+        "datavault_hub",
+        "datavault_link",
+        "datavault_satellite"
       ],
       "description": "Materialization strategy"
     },

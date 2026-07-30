@@ -916,6 +916,9 @@ const allStrategyOptions = [
   { value: "ddl", label: "DDL" },
   { value: "scd2_by_time", label: "SCD2 by Time" },
   { value: "scd2_by_column", label: "SCD2 by Column" },
+  { value: "datavault_hub", label: "Data Vault Hub" },
+  { value: "datavault_link", label: "Data Vault Link" },
+  { value: "datavault_satellite", label: "Data Vault Satellite" },
 ];
 
 // Ingestr assets delegate the load to ingestr's incremental engine, which only
@@ -1303,6 +1306,11 @@ function getStrategyDescription(strategy) {
     "time_interval": "Process time-based data using incremental key",
     "ddl":
       "Use DDL to create a new table using the information provided in the embedded Bruin section",
+    "scd2_by_time": "Track history using a time column (requires incremental key)",
+    "scd2_by_column": "Track history by comparing column values",
+    "datavault_hub": "Load into a Data Vault hub table (business keys)",
+    "datavault_link": "Load into a Data Vault link table (relationships between hubs)",
+    "datavault_satellite": "Load into a Data Vault satellite table (descriptive/historical attributes)",
   }[strategy];
 }
 

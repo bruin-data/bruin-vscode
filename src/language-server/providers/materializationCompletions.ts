@@ -272,7 +272,7 @@ export class MaterializationCompletions {
             { 
                 name: 'table', 
                 description: 'Materialize as a table - requires strategy',
-                insertText: new vscode.SnippetString('table\n  strategy: ${1|create+replace,delete+insert,merge,append,truncate+insert,ddl,scd2_by_column,scd2_by_time|}')
+                insertText: new vscode.SnippetString('table\n  strategy: ${1|create+replace,delete+insert,truncate+insert,append,merge,time_interval,ddl,scd2_by_time,scd2_by_column,datavault_hub,datavault_link,datavault_satellite|}')
             },
             { 
                 name: 'view', 
@@ -344,10 +344,25 @@ export class MaterializationCompletions {
                 description: 'SCD2 by column',
                 requiresIncrementalKey: true
             },
-            { 
-                name: 'scd2_by_time', 
+            {
+                name: 'scd2_by_time',
                 description: 'SCD2 by time (requires incremental_key)',
                 requiresIncrementalKey: true
+            },
+            {
+                name: 'datavault_hub',
+                description: 'Data Vault hub table (business keys)',
+                requiresIncrementalKey: false
+            },
+            {
+                name: 'datavault_link',
+                description: 'Data Vault link table (relationships between hubs)',
+                requiresIncrementalKey: false
+            },
+            {
+                name: 'datavault_satellite',
+                description: 'Data Vault satellite table (descriptive/historical attributes)',
+                requiresIncrementalKey: false
             }
         ];
 
