@@ -362,6 +362,32 @@
           "then": {
             "required": ["parameters"]
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": { "const": "ingestr" }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "materialization": {
+                "properties": {
+                  "strategy": {
+                    "enum": [
+                      "create+replace",
+                      "delete+insert",
+                      "append",
+                      "merge",
+                      "truncate+insert"
+                    ],
+                    "description": "For ingestr assets, materialization.strategy uses Bruin strategy names (create+replace maps to ingestr's \"replace\"). Valid: create+replace, delete+insert, append, merge, truncate+insert. To use raw ingestr names like \"replace\" or \"scd2\", set parameters.incremental_strategy instead."
+                  }
+                }
+              }
+            }
+          }
         }
       ]
     },
