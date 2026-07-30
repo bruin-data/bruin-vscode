@@ -1,4 +1,7 @@
 # Changelog
+## [0.83.3]
+- Synced the materialization strategy options with the Bruin CLI: added `time_interval` and the Data Vault strategies (`datavault_hub`, `datavault_link`, `datavault_satellite`) for SQL assets, and updated the ingestr strategy set to add `scd2` and drop the removed `truncate+insert`.
+
 ## [0.83.2]
 - Switching assets updates the SQL editor and lineage in place instead of reloading.
 
