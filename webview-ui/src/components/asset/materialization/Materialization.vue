@@ -923,7 +923,8 @@ const allStrategyOptions = [
 
 // Ingestr assets delegate the load to ingestr's incremental engine, which only
 // supports these strategies (the SQL-only strategies are rejected by the CLI).
-const INGESTR_STRATEGIES = ["create+replace", "delete+insert", "append", "merge", "truncate+insert"];
+// scd2_by_time/scd2_by_column map to ingestr's "scd2".
+const INGESTR_STRATEGIES = ["create+replace", "delete+insert", "append", "merge", "scd2_by_time", "scd2_by_column"];
 
 const strategyOptions = computed(() =>
   props.assetType === "ingestr"

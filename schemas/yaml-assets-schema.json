@@ -380,9 +380,10 @@
                       "delete+insert",
                       "append",
                       "merge",
-                      "truncate+insert"
+                      "scd2_by_time",
+                      "scd2_by_column"
                     ],
-                    "description": "For ingestr assets, materialization.strategy uses Bruin strategy names (create+replace maps to ingestr's \"replace\"). Valid: create+replace, delete+insert, append, merge, truncate+insert. To use raw ingestr names like \"replace\" or \"scd2\", set parameters.incremental_strategy instead."
+                    "description": "For ingestr assets, materialization.strategy uses Bruin strategy names (create+replace maps to ingestr's \"replace\"; scd2_by_time/scd2_by_column map to ingestr's \"scd2\"). Valid: create+replace, delete+insert, append, merge, scd2_by_time, scd2_by_column. To use raw ingestr names like \"replace\" or \"scd2\", set parameters.incremental_strategy instead."
                   }
                 }
               }
