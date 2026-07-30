@@ -89,7 +89,7 @@ After installing, run the **Bruin: Show Getting Started Walkthrough** command fr
 ## Release Notes
 
 ### Recent Update
-- **0.83.3**: Synced the materialization strategy options with the Bruin CLI — added `time_interval` and the Data Vault strategies (`datavault_hub`, `datavault_link`, `datavault_satellite`) for SQL assets, and updated the ingestr strategy set to add `scd2` and drop the removed `truncate+insert`.
+- **0.83.3**: Synced the materialization strategy options with the Bruin CLI — added `time_interval` and the Data Vault strategies (`datavault_hub`, `datavault_link`, `datavault_satellite`) for SQL assets, accepted `replace` as an alias for `create+replace`, and updated the ingestr strategy set to add `scd2` and drop the removed `truncate+insert`.
 - **0.83.2**: Switching assets updates the SQL editor and lineage in place instead of reloading.
 - **0.83.1**: Preview Dashboard offers to install or update `dac` when it's missing or below the required version.
 - **0.83.0**: Added a Dashboards-as-Code preview — open a dashboard YAML and click the Preview Dashboard button in the editor toolbar to render it in a theme-matched webview backed by `dac serve`, with live reload on edit and an Open-in-Browser button.
