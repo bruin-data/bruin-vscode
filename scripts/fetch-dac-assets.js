@@ -50,6 +50,14 @@ function download(tmpFile) {
 }
 
 async function main() {
+  // `--if-missing` (used by `dev:watch`) skips the download when the SPA is
+  // already in place, so iterating locally needs no network and works offline.
+  const ifMissing = process.argv.includes("--if-missing") || process.env.DAC_FETCH_IF_MISSING === "1";
+  if (ifMissing && fs.existsSync(path.join(destDir, "index.html"))) {
+    console.log(`dac frontend already present at ${path.relative(process.cwd(), destDir)}; skipping fetch.`);
+    return;
+  }
+
   if (!REPO || !VERSION) {
     throw new Error(
       "Missing dac frontend pin. Set package.json `dacFrontend.repo` and `dacFrontend.version` " +

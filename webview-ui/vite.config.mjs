@@ -40,7 +40,7 @@ const copyTestAssetsPlugin = () => {
         }
     };
 };
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     css: {
         postcss: {
             plugins: [tailwind(), autoprefixer()],
@@ -60,6 +60,10 @@ export default defineConfig({
     },
     build: {
         outDir: "build",
+        // The dev watch build (`--mode development`) must not empty `build/` — the
+        // dac SPA lives in `build/dac-spa` and would be wiped on the first rebuild.
+        // Production builds still clean the dir.
+        emptyOutDir: mode !== "development",
         // Webviews run in VS Code's modern Electron/Chromium, so target a recent
         // baseline. This also avoids esbuild >=0.28 attempting (and failing) to lower
         // destructuring for the legacy Safari 14 target in its default browser list.
@@ -79,4 +83,4 @@ export default defineConfig({
             },
         },
     },
-});
+}));
