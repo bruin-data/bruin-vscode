@@ -196,7 +196,8 @@
                 "vitess",
                 "planetscale_mysql",
                 "oracle",
-                "csv"
+                "csv",
+                "iceberg"
               ],
               "description": "The destination system",
               "additionalProperties": true
