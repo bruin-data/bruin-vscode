@@ -104,6 +104,9 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     "clickhouse",
     "databricks",
     "athena",
+    "fabric",
+    "mssql",
+    "synapse",
   ];
 
   constructor(private extensionPath: string) {
