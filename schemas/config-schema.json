@@ -2971,6 +2971,15 @@
                 "auth": {
                     "$ref": "#/definitions/IcebergAuth"
                 },
+                "rest_use_ssl": {
+                    "type": "boolean"
+                },
+                "driver": {
+                    "type": "string"
+                },
+                "dialect": {
+                    "type": "string"
+                },
                 "credential": {
                     "type": "string"
                 },
@@ -3030,8 +3039,7 @@
             "type": "object",
             "required": [
                 "name",
-                "catalog",
-                "storage"
+                "catalog"
             ]
         },
         "IcebergStorage": {
@@ -3059,13 +3067,16 @@
                 },
                 "auth": {
                     "$ref": "#/definitions/IcebergAuth"
+                },
+                "key_file": {
+                    "type": "string"
+                },
+                "key_json": {
+                    "type": "string"
                 }
             },
             "additionalProperties": false,
-            "type": "object",
-            "required": [
-                "type"
-            ]
+            "type": "object"
         },
         "IndeedConnection": {
             "properties": {
