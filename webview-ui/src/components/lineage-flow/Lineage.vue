@@ -934,6 +934,10 @@ const buildPipelineElements = async () => {
   } finally {
     if (gen === buildGeneration) {
       isBuildingView.value = false;
+      // The pipeline graph is now drawn. Clear the initial loading flag, which
+      // otherwise only ever gets cleared by the asset-view path (_updateGraph) —
+      // leaving the spinner stuck when a pipeline is opened before any asset.
+      isLoadingLocal.value = false;
     }
   }
 };
@@ -1153,6 +1157,9 @@ const buildColumnElements = async () => {
   } finally {
     if (gen === buildGeneration) {
       isBuildingView.value = false;
+      // Same as the pipeline path: clear the initial loading flag so a column
+      // view opened cold doesn't leave the spinner stuck.
+      isLoadingLocal.value = false;
     }
   }
 };
