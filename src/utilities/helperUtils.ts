@@ -294,6 +294,7 @@ type ConnectionType =
   | "postgres"
   | "redshift"
   | "mssql"
+  | "fabric"
   | "databricks"
   | "synapse"
   | "mongo"

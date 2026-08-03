@@ -474,10 +474,11 @@
   "scripts": {
     "install:all": "npm install && cd webview-ui && npm install",
     "start:webview": "cd webview-ui && npm run start",
-    "dev:watch": "concurrently -n EXTENSION,WEBVIEW -c yellow,blue \"tsc -watch -p ./\" \"cd webview-ui && npm run watch\"",
+    "dev:watch": "npm run ensure:dac-spa && concurrently -n EXTENSION,WEBVIEW -c yellow,blue \"tsc -watch -p ./\" \"cd webview-ui && npm run watch\"",
     "build:webview": "cd webview-ui && npm run build-only && node scripts/copy-codicons.js",
     "copy:dac-spa": "node scripts/copy-dac-assets.js",
     "fetch:dac-spa": "node scripts/fetch-dac-assets.js",
+    "ensure:dac-spa": "node scripts/fetch-dac-assets.js --if-missing",
     "vscode:prepublish": "npm run compile && npm run fetch:dac-spa",
     "selenium:setup-tests": "extest setup-tests",
     "selenium:run-tests:connections": "node webview-ui/scripts/copy-test-assets.js && extest setup-and-run './out/ui-test/connections-integration.test.js' --code_version 1.103.0 --code_settings settings.json --mocha_config .mocharc-ui.js",

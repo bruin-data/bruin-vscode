@@ -79,6 +79,7 @@ export const formatConnectionName = (option) => {
     mongo: "MongoDB",
     aws: "Amazon Web Services (AWS)",
     mssql: "Microsoft SQL Server",
+    fabric: "Microsoft Fabric",
     mysql: "MySQL",
     google_cloud_platform: "Google Cloud Platform",
     synapse: "Azure Synapse",
