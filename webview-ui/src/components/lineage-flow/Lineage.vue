@@ -288,7 +288,7 @@ const COLUMN_FLOW_ID = "column-lineage-flow";
 const flowRef = ref(null);
 const { nodes, edges, addNodes, addEdges, setNodes, setEdges, fitView, onNodeMouseEnter, onNodeMouseLeave, getNodes, getEdges } = useVueFlow(ASSET_FLOW_ID);
 const { fitView: fitPipelineView } = useVueFlow(PIPELINE_FLOW_ID);
-const { fitView: fitColumnView } = useVueFlow(COLUMN_FLOW_ID);
+const { fitView: fitColumnView, getEdges: getColumnEdges, setEdges: setColumnEdges } = useVueFlow(COLUMN_FLOW_ID);
 const elements = computed(() => [...nodes.value, ...edges.value]);
 const selectedNodeId = ref<string | null>(null);
 const isLoadingLocal = ref(true);
@@ -1172,13 +1172,71 @@ const onAssetNodesInitialized = async () => {
   await fitViewSmooth(true, false); 
 };
 
+// Walk the column-lineage edges connected to a column, upstream and downstream.
+const findConnectedColumnEdges = (
+  assetName: string,
+  columnName: string,
+  allEdges: any[],
+  visited = new Set<string>()
+): any[] => {
+  const key = `${assetName.toLowerCase()}.${columnName.toLowerCase()}`;
+  if (visited.has(key)) return [];
+  visited.add(key);
+
+  const matches = (a?: string, c?: string) =>
+    a?.toLowerCase() === assetName.toLowerCase() && c?.toLowerCase() === columnName.toLowerCase();
+
+  const directEdges = allEdges.filter(
+    (edge) =>
+      edge.data?.type === "column-lineage" &&
+      (matches(edge.data.sourceAsset, edge.data.sourceColumn) ||
+        matches(edge.data.targetAsset, edge.data.targetColumn))
+  );
+
+  const connected = [...directEdges];
+  directEdges.forEach((edge) => {
+    if (matches(edge.data.sourceAsset, edge.data.sourceColumn)) {
+      connected.push(...findConnectedColumnEdges(edge.data.targetAsset, edge.data.targetColumn, allEdges, visited));
+    }
+    if (matches(edge.data.targetAsset, edge.data.targetColumn)) {
+      connected.push(...findConnectedColumnEdges(edge.data.sourceAsset, edge.data.sourceColumn, allEdges, visited));
+    }
+  });
+
+  return connected.filter((edge, i, self) => i === self.findIndex((e) => e.id === edge.id));
+};
+
+const styleColumnEdges = (connectedIds: Set<string> | null): void => {
+  const dim = connectedIds !== null && connectedIds.size > 0;
+  setColumnEdges(
+    getColumnEdges.value.map((edge) => {
+      const isConnected = connectedIds?.has(edge.id) ?? false;
+      const style = typeof edge.style === "object" ? edge.style : {};
+      return {
+        ...edge,
+        style: {
+          ...style,
+          stroke: isConnected ? "#3B82F6" : "#6b7280",
+          strokeWidth: isConnected ? 1.5 : 0.3,
+          opacity: !dim || isConnected ? 1 : 0.2,
+          transition: "stroke 0.2s ease, stroke-width 0.2s ease, opacity 0.2s ease",
+        },
+      };
+    })
+  );
+};
+
 const handleColumnHover = (assetName: string, columnName: string): void => {
   hoveredColumn.value = { assetName, columnName };
-  // Edge highlight could be added if needed by manipulating columnElements
+  const connectedIds = new Set(
+    findConnectedColumnEdges(assetName, columnName, getColumnEdges.value).map((e) => e.id)
+  );
+  styleColumnEdges(connectedIds);
 };
 
 const handleColumnLeave = (): void => {
   hoveredColumn.value = null;
+  styleColumnEdges(null);
 };
 </script>
 
