@@ -3,10 +3,19 @@
     "injectionSelector": "L:source.sql, L:source.sql-bigquery, L:source.pgsql",
     "patterns": [
         {
+            "include": "#jinja-comment"
+        },
+        {
             "include": "#bruin-sql"
         }
     ],
     "repository": {
+        "jinja-comment": {
+            "name": "comment.block.jinja.bruin",
+            "begin": "\\{#-?",
+            "end": "-?#\\}",
+            "patterns": []
+        },
         "bruin-sql": {
             "name": "bruin-sql",
             "patterns": [
