@@ -1,4 +1,7 @@
 # Changelog
+## [0.83.4]
+- Restored the column lineage highlight on hover, and fixed syntax highlighting breaking on apostrophes inside Jinja comments.
+
 ## [0.83.3]
 - Show Fabric, MSSQL and Synapse connections in the Databases panel, and fixed pipeline lineage getting stuck on "Building pipeline lineage…".
 

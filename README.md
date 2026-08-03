@@ -89,6 +89,7 @@ After installing, run the **Bruin: Show Getting Started Walkthrough** command fr
 ## Release Notes
 
 ### Recent Update
+- **0.83.4**: Restored the column lineage highlight on hover, and fixed syntax highlighting breaking on apostrophes inside Jinja comments.
 - **0.83.3**: Show Fabric, MSSQL and Synapse connections in the Databases panel, and fixed pipeline lineage getting stuck on "Building pipeline lineage…".
 - **0.83.2**: Switching assets updates the SQL editor and lineage in place instead of reloading.
 - **0.83.1**: Preview Dashboard offers to install or update `dac` when it's missing or below the required version.
