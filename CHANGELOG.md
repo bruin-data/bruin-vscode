@@ -1,4 +1,7 @@
 # Changelog
+## [0.83.3]
+- Show Fabric, MSSQL and Synapse connections in the Databases panel, and fixed pipeline lineage getting stuck on "Building pipeline lineage…".
+
 ## [0.83.2]
 - Switching assets updates the SQL editor and lineage in place instead of reloading.
 
