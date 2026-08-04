@@ -1,6 +1,6 @@
 # Changelog
 ## [0.83.5]
-- Fixed column lineage not drawing edges (and hover highlighting nothing) when a query references its upstreams with a catalog-qualified name, e.g. Fabric's `wh_silver.schema.table`.
+- Fixed column lineage not drawing edges (and hover highlighting nothing) when a query references its upstreams with a catalog-qualified name.
 
 ## [0.83.4]
 - Restored the column lineage highlight on hover, and fixed syntax highlighting breaking on apostrophes inside Jinja comments.
