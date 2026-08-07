@@ -7,28 +7,6 @@ import {
 } from '@/utilities/graphGenerator';
 import { findDownstreamAssets, getDownstreamAssetNames } from '@/utilities/assetDependencies';
 
-// Column-level lineage from the CLI tags a source with the table name used in the
-// query's FROM clause. When that is fully qualified with a catalog (e.g. Fabric's
-// `wh_silver.schema.table`) it won't match a two-part asset node (`schema.table`),
-// so the column edge is silently dropped. Resolve such names back to the canonical
-// asset name by stripping the leading catalog when the remainder matches an asset.
-const makeUpstreamAssetResolver = (assets: any[]) => {
-  const byLower = new Map<string, string>();
-  (assets || []).forEach((a: any) => {
-    if (a?.name) byLower.set(String(a.name).toLowerCase(), a.name);
-  });
-  return (table: string): string => {
-    if (!table) return table;
-    if (byLower.has(table.toLowerCase())) return byLower.get(table.toLowerCase())!;
-    const parts = table.split(".");
-    if (parts.length > 2) {
-      const stripped = parts.slice(-2).join(".").toLowerCase();
-      if (byLower.has(stripped)) return byLower.get(stripped)!;
-    }
-    return table;
-  };
-};
-
 export const getAssetDatasetWithColumns = (
   pipelineData: any,
   assetId: string,
@@ -48,18 +26,17 @@ export const getAssetDatasetWithColumns = (
     // If no column_lineage at pipeline level, build it from individual column upstreams
     if (!pipelineData.column_lineage || Object.keys(pipelineData.column_lineage).length === 0) {
       columnLineageMap = {};
-      const resolveUpstreamAsset = makeUpstreamAssetResolver(pipelineData.assets);
-
+      
       pipelineData.assets.forEach(asset => {
         if (asset.columns && Array.isArray(asset.columns)) {
           const assetColumnLineage: ColumnLineage[] = [];
-
+          
           asset.columns.forEach((column: ColumnInfo) => {
             if (column.upstreams && Array.isArray(column.upstreams) && column.upstreams.length > 0) {
               const lineageEntry: ColumnLineage = {
                 column: column.name,
                 source_columns: column.upstreams.map((upstream: ColumnUpstream) => ({
-                  asset: resolveUpstreamAsset(upstream.table),
+                  asset: upstream.table,
                   column: upstream.column
                 }))
               };
@@ -179,18 +156,17 @@ export const buildColumnLineage = (pipelineData: { assets: any[], column_lineage
   // If no column_lineage at pipeline level, build it from individual column upstreams
   if (!pipelineData.column_lineage || Object.keys(pipelineData.column_lineage).length === 0) {
     columnLineageMap = {};
-    const resolveUpstreamAsset = makeUpstreamAssetResolver(assets);
-
+    
     assets.forEach(asset => {
       if (asset.columns && Array.isArray(asset.columns)) {
         const assetColumnLineage: ColumnLineage[] = [];
-
+        
         asset.columns.forEach((column: ColumnInfo) => {
           if (column.upstreams && Array.isArray(column.upstreams) && column.upstreams.length > 0) {
             const lineageEntry: ColumnLineage = {
               column: column.name,
               source_columns: column.upstreams.map((upstream: ColumnUpstream) => ({
-                asset: resolveUpstreamAsset(upstream.table),
+                asset: upstream.table,
                 column: upstream.column
               }))
             };

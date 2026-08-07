@@ -233,10 +233,10 @@ export const createColumnLevelEdges = (
   const edges: Edge[] = [];
   const edgeSet = new Set<string>(); // Track unique edges to prevent duplicates
   
-  processedAssets.forEach(assetName => {
-    const assetColumnLineage = columnLineageMap[assetName];
+  Object.entries(columnLineageMap).forEach(([assetName, assetColumnLineage]) => {
+    if (!processedAssets.has(assetName.toLowerCase())) return;
     if (!assetColumnLineage || assetColumnLineage.length === 0) return;
-    
+
     assetColumnLineage.forEach(lineage => {
       lineage.source_columns.forEach(sourceColumn => {
         if (!processedAssets.has(sourceColumn.asset.toLowerCase())) return;
