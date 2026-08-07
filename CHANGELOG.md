@@ -1,4 +1,7 @@
 # Changelog
+## [0.83.6]
+- Fixed column lineage not drawing edges (or highlighting on hover) for assets whose names contain uppercase letters, and moved database-qualified name resolution to the Bruin CLI instead of stripping the qualifier in the extension.
+
 ## [0.83.5]
 - Fixed column lineage not drawing edges (and hover highlighting nothing) when a query references its upstreams with a catalog-qualified name.
 
