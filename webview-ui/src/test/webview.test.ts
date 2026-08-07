@@ -1221,8 +1221,7 @@ suite('createColumnLevelEdges', () => {
   });
 
   test('should create edges when the target asset name has uppercase letters', () => {
-    // processedAssets stores lowercased names; columnLineageMap is keyed by the
-    // original-case asset name. A mixed-case name like dbo.DimAccount must still match.
+    // A mixed-case asset name (e.g. dbo.DimAccount) must still match.
     const processedAssets = new Set(['dbo.dimaccount', 'wh_silver.yardi.int_yardi__gl_transactions']);
     const columnLineageMap = {
       'dbo.DimAccount': [
