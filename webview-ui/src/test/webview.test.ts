@@ -1220,6 +1220,32 @@ suite('createColumnLevelEdges', () => {
     expect(edges[0].data.targetAsset).toBe('asset2');
   });
 
+  test('should create edges when the target asset name has uppercase letters', () => {
+    // A mixed-case asset name (e.g. dbo.DimAccount) must still match.
+    const processedAssets = new Set(['dbo.dimaccount', 'wh_silver.yardi.int_yardi__gl_transactions']);
+    const columnLineageMap = {
+      'dbo.DimAccount': [
+        {
+          column: 'AccountName',
+          source_columns: [
+            { asset: 'wh_silver.yardi.int_yardi__gl_transactions', column: 'AccountName' }
+          ]
+        }
+      ]
+    };
+
+    const assetMap = {
+      'wh_silver.yardi.int_yardi__gl_transactions': { columns: [{ name: 'AccountName' }] },
+      'dbo.DimAccount': { columns: [{ name: 'AccountName' }] }
+    };
+
+    const edges = createColumnLevelEdges(processedAssets, columnLineageMap, assetMap);
+
+    expect(edges).toHaveLength(1);
+    expect(edges[0].data.targetAsset).toBe('dbo.DimAccount');
+    expect(edges[0].data.sourceAsset).toBe('wh_silver.yardi.int_yardi__gl_transactions');
+  });
+
   test('should not create edges for assets not in processedAssets', () => {
     const processedAssets = new Set(['asset2']);
     const columnLineageMap = {
