@@ -9,6 +9,11 @@ export function run(): Promise<void> {
     timeout: 20000,
   });
 
+  // Optional: run only matching suites/tests, e.g. MOCHA_GREP="Custom MCP config".
+  if (process.env.MOCHA_GREP) {
+    mocha.grep(process.env.MOCHA_GREP);
+  }
+
   // __dirname points to out/test/suite at runtime; go up one to out/test
   const testsRoot = path.resolve(__dirname, "..");
 
