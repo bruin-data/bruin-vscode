@@ -46,6 +46,9 @@ import {
   getMcpIntegrationStatuses,
   installMcpIntegration,
   uninstallMcpIntegration,
+  getCustomMcpConfigStatuses,
+  setCustomMcpConfig,
+  normalizeCustomConfigPath,
   McpClientId,
   McpVariant,
 } from "../extension/commands/manageMcpIntegrations";
@@ -81,6 +84,7 @@ export class BruinPanel {
   public static readonly viewId = "bruin.panel";
   private static _extensionContext: vscode.ExtensionContext | undefined;
   private static readonly CLOUD_MCP_BEARER_TOKEN_SECRET_KEY = "bruin.mcp.cloudBearerToken";
+  private static readonly CUSTOM_MCP_CONFIG_PATHS_KEY = "bruin.mcp.customConfigPaths";
   private readonly _panel: WebviewPanel;
   private readonly _extensionUri: Uri;
   private _disposables: Disposable[] = [];
@@ -125,6 +129,36 @@ export class BruinPanel {
       return; // no-op write avoidance
     }
     await ctx.globalState.update(BruinPanel.CLI_INSTALLED_CACHE_KEY, installed);
+  }
+
+  private static getCustomMcpConfigPaths(): string[] {
+    const stored = BruinPanel._extensionContext?.globalState.get<string[]>(
+      BruinPanel.CUSTOM_MCP_CONFIG_PATHS_KEY
+    );
+    return Array.isArray(stored) ? stored.filter((entry) => typeof entry === "string") : [];
+  }
+
+  private static async setCustomMcpConfigPaths(paths: string[]): Promise<void> {
+    const unique = Array.from(new Set(paths));
+    await BruinPanel._extensionContext?.globalState.update(
+      BruinPanel.CUSTOM_MCP_CONFIG_PATHS_KEY,
+      unique
+    );
+  }
+
+  private async postCustomMcpStatuses(variant: McpVariant): Promise<void> {
+    try {
+      const statuses = await getCustomMcpConfigStatuses(BruinPanel.getCustomMcpConfigPaths(), variant);
+      this._panel.webview.postMessage({
+        command: "mcp-custom-config-status-message",
+        payload: { status: "success", message: statuses, variant },
+      });
+    } catch (error) {
+      this._panel.webview.postMessage({
+        command: "mcp-custom-config-status-message",
+        payload: { status: "error", message: `Failed to load custom MCP status: ${error}`, variant },
+      });
+    }
   }
 
   /**
@@ -1027,6 +1061,7 @@ export class BruinPanel {
             break;
           case "bruin.getMcpIntegrationStatus":
             const variant = (message.payload?.variant as McpVariant | undefined) ?? "bruin";
+            await this.postCustomMcpStatuses(variant);
             try {
               const mcpStatuses = await getMcpIntegrationStatuses(this._lastRenderedDocumentUri, variant);
               this._panel.webview.postMessage({
@@ -1196,6 +1231,116 @@ export class BruinPanel {
               });
             }
             break;
+
+          case "bruin.addCustomMcpConfig": {
+            const variant = (message.payload?.variant as McpVariant | undefined) ?? "bruin";
+            try {
+              const input = await vscode.window.showInputBox({
+                title: "Add custom MCP config",
+                prompt: "Absolute path to the client's MCP config file (JSON using an \"mcpServers\" key)",
+                placeHolder: "e.g. ~/.config/<client>/mcp.json",
+                ignoreFocusOut: true,
+                validateInput: (value) =>
+                  value.trim().length === 0 ? "A config file path is required." : undefined,
+              });
+              if (!input) {
+                this._panel.webview.postMessage({
+                  command: "mcp-custom-config-action-message",
+                  payload: { status: "cancelled", variant },
+                });
+                break;
+              }
+
+              const configPath = normalizeCustomConfigPath(input);
+              let bearerToken: string | undefined;
+              if (variant === "cloud") {
+                bearerToken = await BruinPanel._extensionContext?.secrets.get(
+                  BruinPanel.CLOUD_MCP_BEARER_TOKEN_SECRET_KEY
+                );
+              }
+
+              await setCustomMcpConfig(configPath, variant, true, bearerToken);
+              await BruinPanel.setCustomMcpConfigPaths([
+                ...BruinPanel.getCustomMcpConfigPaths(),
+                configPath,
+              ]);
+
+              this._panel.webview.postMessage({
+                command: "mcp-custom-config-action-message",
+                payload: { status: "success", message: `Configured Bruin MCP in ${configPath}.`, variant },
+              });
+              await this.postCustomMcpStatuses(variant);
+            } catch (error) {
+              this._panel.webview.postMessage({
+                command: "mcp-custom-config-action-message",
+                payload: { status: "error", message: `Failed to add custom MCP config: ${error}`, variant },
+              });
+            }
+            break;
+          }
+
+          case "bruin.toggleCustomMcpConfig": {
+            const variant = (message.payload?.variant as McpVariant | undefined) ?? "bruin";
+            const configPath =
+              typeof message.payload?.path === "string" ? message.payload.path : undefined;
+            const enable = Boolean(message.payload?.enable);
+            try {
+              if (!configPath) {
+                throw new Error("No custom MCP config path provided.");
+              }
+              let bearerToken: string | undefined;
+              if (variant === "cloud" && enable) {
+                bearerToken = await BruinPanel._extensionContext?.secrets.get(
+                  BruinPanel.CLOUD_MCP_BEARER_TOKEN_SECRET_KEY
+                );
+              }
+              await setCustomMcpConfig(configPath, variant, enable, bearerToken);
+              this._panel.webview.postMessage({
+                command: "mcp-custom-config-action-message",
+                payload: {
+                  status: "success",
+                  message: enable
+                    ? `Enabled Bruin MCP in ${configPath}.`
+                    : `Disabled Bruin MCP in ${configPath}.`,
+                  variant,
+                },
+              });
+              await this.postCustomMcpStatuses(variant);
+            } catch (error) {
+              this._panel.webview.postMessage({
+                command: "mcp-custom-config-action-message",
+                payload: { status: "error", message: `Failed to update custom MCP config: ${error}`, variant },
+              });
+            }
+            break;
+          }
+
+          case "bruin.removeCustomMcpConfig": {
+            const variant = (message.payload?.variant as McpVariant | undefined) ?? "bruin";
+            const configPath =
+              typeof message.payload?.path === "string" ? message.payload.path : undefined;
+            try {
+              if (!configPath) {
+                throw new Error("No custom MCP config path provided.");
+              }
+              // Only stop tracking the path; leave the client's config file untouched
+              // so we never disconnect a working integration (Disable removes servers).
+              await BruinPanel.setCustomMcpConfigPaths(
+                BruinPanel.getCustomMcpConfigPaths().filter((entry) => entry !== configPath)
+              );
+              this._panel.webview.postMessage({
+                command: "mcp-custom-config-action-message",
+                payload: { status: "success", message: `Stopped tracking ${configPath}.`, variant },
+              });
+              await this.postCustomMcpStatuses(variant);
+            } catch (error) {
+              this._panel.webview.postMessage({
+                command: "mcp-custom-config-action-message",
+                payload: { status: "error", message: `Failed to remove custom MCP config: ${error}`, variant },
+              });
+            }
+            break;
+          }
 
           case "bruin.getConnectionsList":
             getConnections(this._lastRenderedDocumentUri);

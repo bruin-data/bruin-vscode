@@ -1,4 +1,7 @@
 # Changelog
+## [0.84.0]
+- Add Bruin MCP to any client that uses the standard `mcpServers` config (e.g. CoCo) by pointing at its config file, alongside the built-in one-click clients.
+
 ## [0.83.6]
 - Fixed column lineage not drawing edges (or highlighting on hover) for assets with uppercase letters in their names.
 

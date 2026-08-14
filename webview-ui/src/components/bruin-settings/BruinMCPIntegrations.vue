@@ -135,6 +135,69 @@
         </div>
       </div>
 
+      <!-- Custom clients -->
+      <div class="mt-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-editor-fg">Custom clients</span>
+          <vscode-button
+            appearance="secondary"
+            class="mcp-btn"
+            @click="addCustomConfig"
+            :disabled="isAddCustomDisabled"
+            :title="getAddCustomTitle()"
+          >
+            {{ isAddingCustom ? "..." : "Add config…" }}
+          </vscode-button>
+        </div>
+        <p class="text-3xs text-editor-fg opacity-60 mt-1">
+          Point Bruin at any client using the standard <code>mcpServers</code> JSON config (e.g. CoCo).
+        </p>
+
+        <div class="mt-2 space-y-1.5">
+          <div
+            v-for="config in customConfigs"
+            :key="config.path"
+            class="rounded border border-commandCenter-border px-3 py-2"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="text-xs text-editor-fg truncate" :title="config.path">{{ config.label }}</span>
+                <span
+                  class="inline-flex items-center px-1.5 py-px rounded-sm text-3xs font-medium whitespace-nowrap border"
+                  :class="getStatusClass(config.status)"
+                >
+                  {{ MCP_STATUS_CONFIG[config.status]?.label ?? "Unknown" }}
+                </span>
+              </div>
+
+              <div class="flex items-center gap-1">
+                <span
+                  v-if="config.details"
+                  class="codicon codicon-info text-[10px] opacity-40 cursor-help hover:opacity-70"
+                  :title="config.details"
+                ></span>
+                <vscode-button
+                  appearance="secondary"
+                  class="mcp-btn"
+                  @click="toggleCustomConfig(config.path, config.configured)"
+                  :disabled="isCustomButtonDisabled(config.path)"
+                >
+                  {{ getCustomButtonLabel(config.path, config.configured) }}
+                </vscode-button>
+                <vscode-button
+                  appearance="icon"
+                  title="Stop tracking (leaves the config file unchanged)"
+                  @click="removeCustomConfig(config.path)"
+                  :disabled="isCustomButtonDisabled(config.path)"
+                >
+                  <span class="codicon codicon-trash"></span>
+                </vscode-button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div
         v-if="mcpFeedbackMessage"
         class="mt-2 rounded border px-1.5 py-1 flex items-center justify-between gap-1"
@@ -153,7 +216,13 @@
 <script setup lang="ts">
 import { ref, onBeforeUnmount, onMounted, computed, watch } from "vue";
 import { vscode } from "@/utilities/vscode";
-import type { McpClientId, McpIntegrationStatus, McpVariant, McpIntegrationStatusType } from "@/types";
+import type {
+  McpClientId,
+  McpIntegrationStatus,
+  McpVariant,
+  McpIntegrationStatusType,
+  CustomMcpConfigStatus,
+} from "@/types";
 import {
   BRUIN_MCP_DOCS_URL,
   DEFAULT_MCP_STATUS,
@@ -194,6 +263,10 @@ const cloudApiToken = ref("");
 const hasCloudApiToken = ref(false);
 const isSavingToken = ref(false);
 const isClearingToken = ref(false);
+
+const customConfigs = ref<CustomMcpConfigStatus[]>([]);
+const isAddingCustom = ref(false);
+const togglingCustomPath = ref<string | null>(null);
 
 const STATUS_CLASSES: Record<McpIntegrationStatusType, string> = {
   checking: "bg-status-info-bg text-status-info-fg border-status-info-border",
@@ -256,6 +329,57 @@ function getButtonLabel(integrationId: McpClientId, isConfigured: boolean): stri
   return isConfigured ? "Disable" : "Enable";
 }
 
+const isAddCustomDisabled = computed(() => {
+  if (isAddingCustom.value) return true;
+  if (activeTab.value === "cloud" && !hasCloudApiToken.value) return true;
+  return false;
+});
+
+function getAddCustomTitle(): string {
+  if (activeTab.value === "cloud" && !hasCloudApiToken.value) {
+    return "Save API token first";
+  }
+  return "";
+}
+
+function isCustomButtonDisabled(configPath: string): boolean {
+  if (togglingCustomPath.value === configPath) return true;
+  if (activeTab.value === "cloud" && !hasCloudApiToken.value) return true;
+  return false;
+}
+
+function getCustomButtonLabel(configPath: string, isConfigured: boolean): string {
+  if (togglingCustomPath.value === configPath) return "...";
+  return isConfigured ? "Disable" : "Enable";
+}
+
+function addCustomConfig() {
+  isAddingCustom.value = true;
+  dismissMcpFeedback();
+  vscode.postMessage({
+    command: "bruin.addCustomMcpConfig",
+    payload: { variant: activeTab.value },
+  });
+}
+
+function toggleCustomConfig(configPath: string, isConfigured: boolean) {
+  togglingCustomPath.value = configPath;
+  dismissMcpFeedback();
+  vscode.postMessage({
+    command: "bruin.toggleCustomMcpConfig",
+    payload: { path: configPath, variant: activeTab.value, enable: !isConfigured },
+  });
+}
+
+function removeCustomConfig(configPath: string) {
+  togglingCustomPath.value = configPath;
+  dismissMcpFeedback();
+  vscode.postMessage({
+    command: "bruin.removeCustomMcpConfig",
+    payload: { path: configPath, variant: activeTab.value },
+  });
+}
+
 function handleMessage(event: MessageEvent) {
   const message = event.data;
   switch (message.command) {
@@ -294,6 +418,27 @@ function handleMessage(event: MessageEvent) {
       }
       break;
 
+    case "mcp-custom-config-status-message": {
+      const variant = message.payload?.variant as McpVariant | undefined;
+      if (variant && variant !== activeTab.value) break;
+      if (message.payload?.status === "success" && Array.isArray(message.payload?.message)) {
+        customConfigs.value = message.payload.message as CustomMcpConfigStatus[];
+      } else if (message.payload?.status === "error") {
+        showFeedback("error", message.payload?.message || "Failed to load custom MCP status.");
+      }
+      break;
+    }
+
+    case "mcp-custom-config-action-message":
+      isAddingCustom.value = false;
+      togglingCustomPath.value = null;
+      if (message.payload?.status === "success") {
+        showFeedback("success", message.payload?.message || "Custom MCP config updated.");
+      } else if (message.payload?.status === "error") {
+        showFeedback("error", message.payload?.message || "Failed to update custom MCP config.");
+      }
+      break;
+
     case "mcp-cloud-bearer-token-message":
       if (message.payload?.status === "success") {
         hasCloudApiToken.value = !!message.payload?.token;
@@ -315,6 +460,7 @@ function handleMessage(event: MessageEvent) {
 }
 
 function refreshMcpStatuses() {
+  customConfigs.value = [];
   if (activeTab.value === "bruin") {
     localMcpStatusByClient.value = { ...DEFAULT_MCP_STATUS };
     vscode.postMessage({ command: "bruin.getMcpIntegrationStatus", payload: { variant: "bruin" } });
@@ -383,6 +529,7 @@ function dismissMcpFeedback() {
 }
 
 watch(activeTab, (newTab) => {
+  customConfigs.value = [];
   if (newTab === "cloud") {
     cloudMcpStatusByClient.value = { ...DEFAULT_CLOUD_MCP_STATUS } as Partial<Record<McpClientId, McpIntegrationStatus>>;
     vscode.postMessage({ command: "bruin.getMcpIntegrationStatus", payload: { variant: "cloud" } });

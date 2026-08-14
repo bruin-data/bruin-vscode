@@ -89,6 +89,7 @@ After installing, run the **Bruin: Show Getting Started Walkthrough** command fr
 ## Release Notes
 
 ### Recent Update
+- **0.84.0**: Configure Bruin MCP for any client using the standard `mcpServers` config (e.g. CoCo) via a custom config path, alongside the built-in one-click clients.
 - **0.83.6**: Fixed column lineage not drawing edges (or highlighting on hover) for assets with uppercase letters in their names.
 - **0.83.5**: Fixed column lineage not drawing edges (and hover highlighting nothing) when a query references its upstreams with a catalog-qualified name.
 - **0.83.4**: Restored the column lineage highlight on hover, and fixed syntax highlighting breaking on apostrophes inside Jinja comments.

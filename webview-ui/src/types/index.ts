@@ -270,3 +270,13 @@ export interface McpIntegrationStatus {
   configPath: string | null;
   details: string;
 }
+
+export interface CustomMcpConfigStatus {
+  path: string;
+  label: string;
+  status: McpIntegrationStatusType;
+  configured: boolean;
+  bruinAvailable: boolean;
+  exists: boolean;
+  details: string;
+}

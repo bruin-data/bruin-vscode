@@ -43,6 +43,16 @@ export interface McpIntegrationUninstallResult {
   message: string;
 }
 
+export interface CustomMcpConfigStatus {
+  path: string;
+  label: string;
+  status: McpIntegrationStatusType;
+  configured: boolean;
+  bruinAvailable: boolean;
+  exists: boolean;
+  details: string;
+}
+
 function formatExecError(error: unknown): string {
   if (!error) {
     return "";
@@ -1025,4 +1035,99 @@ export async function uninstallMcpIntegration(
     default:
       throw new Error(`Unsupported Bruin Cloud MCP integration target: ${target}`);
   }
+}
+
+// --- Custom (bring-your-own-path) MCP clients -------------------------------
+// Any MCP client that uses the standard `mcpServers` JSON schema (CoCo, Windsurf,
+// Zed, etc.) can be configured by pointing at its config file, so we don't need a
+// hardcoded entry per client.
+
+export function normalizeCustomConfigPath(inputPath: string): string {
+  const trimmed = inputPath.trim();
+  const expanded = trimmed.startsWith("~") ? path.join(os.homedir(), trimmed.slice(1)) : trimmed;
+  return path.resolve(expanded);
+}
+
+async function evaluateCustomConfigStatus(
+  configPath: string,
+  variant: McpVariant,
+  bruinAvailable: boolean
+): Promise<CustomMcpConfigStatus> {
+  const label = path.basename(configPath);
+  const base = { path: configPath, label, bruinAvailable };
+  const isConfigured = variant === "cloud" ? hasBruinCloudMcpServerDefinition : hasBruinMcpServerDefinition;
+
+  if (!fs.existsSync(configPath)) {
+    return {
+      ...base,
+      exists: false,
+      configured: false,
+      status: "not_configured",
+      details: "File does not exist yet; it will be created when enabled.",
+    };
+  }
+
+  try {
+    const config = await readJsonFile(configPath);
+    const configured = isConfigured(config);
+    if (configured && variant === "bruin" && !bruinAvailable) {
+      return {
+        ...base,
+        exists: true,
+        configured: true,
+        status: "bruin_missing",
+        details: "Configured, but Bruin CLI is not available.",
+      };
+    }
+    return {
+      ...base,
+      exists: true,
+      configured,
+      status: configured ? "ready" : "not_configured",
+      details: configured ? `Configured in ${configPath}.` : "Config exists but Bruin MCP entry is missing.",
+    };
+  } catch (error) {
+    return {
+      ...base,
+      exists: true,
+      configured: false,
+      status: "error",
+      details: `Invalid JSON in ${configPath}: ${error}`,
+    };
+  }
+}
+
+export async function getCustomMcpConfigStatuses(
+  configPaths: string[],
+  variant: McpVariant = "bruin"
+): Promise<CustomMcpConfigStatus[]> {
+  const bruinAvailable = variant === "cloud" ? true : await isBruinCliAvailable();
+  return Promise.all(
+    configPaths.map((configPath) => evaluateCustomConfigStatus(configPath, variant, bruinAvailable))
+  );
+}
+
+export async function setCustomMcpConfig(
+  configPath: string,
+  variant: McpVariant,
+  enable: boolean,
+  bearerToken?: string
+): Promise<void> {
+  const serverName = variant === "cloud" ? BRUIN_CLOUD_SERVER_NAME : BRUIN_LOCAL_SERVER_NAME;
+
+  if (!enable) {
+    await removeMcpJsonServerConfig(configPath, serverName);
+    return;
+  }
+
+  if (variant === "cloud") {
+    const token = bearerToken?.trim();
+    if (!token) {
+      throw new Error("API token is required for Bruin Cloud MCP.");
+    }
+    await writeBruinCloudCursorMcpJsonConfig(configPath, token);
+    return;
+  }
+
+  await writeBruinMcpJsonConfig(configPath, "mcpServers");
 }
