@@ -1131,8 +1131,3 @@ export async function setCustomMcpConfig(
 
   await writeBruinMcpJsonConfig(configPath, "mcpServers");
 }
-
-export async function removeCustomMcpConfigServers(configPath: string): Promise<void> {
-  await removeMcpJsonServerConfig(configPath, BRUIN_LOCAL_SERVER_NAME);
-  await removeMcpJsonServerConfig(configPath, BRUIN_CLOUD_SERVER_NAME);
-}

@@ -48,7 +48,6 @@ import {
   uninstallMcpIntegration,
   getCustomMcpConfigStatuses,
   setCustomMcpConfig,
-  removeCustomMcpConfigServers,
   normalizeCustomConfigPath,
   McpClientId,
   McpVariant,
@@ -1324,13 +1323,14 @@ export class BruinPanel {
               if (!configPath) {
                 throw new Error("No custom MCP config path provided.");
               }
-              await removeCustomMcpConfigServers(configPath);
+              // Only stop tracking the path; leave the client's config file untouched
+              // so we never disconnect a working integration (Disable removes servers).
               await BruinPanel.setCustomMcpConfigPaths(
                 BruinPanel.getCustomMcpConfigPaths().filter((entry) => entry !== configPath)
               );
               this._panel.webview.postMessage({
                 command: "mcp-custom-config-action-message",
-                payload: { status: "success", message: `Removed ${configPath}.`, variant },
+                payload: { status: "success", message: `Stopped tracking ${configPath}.`, variant },
               });
               await this.postCustomMcpStatuses(variant);
             } catch (error) {

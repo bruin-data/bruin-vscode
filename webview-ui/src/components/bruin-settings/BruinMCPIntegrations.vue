@@ -186,7 +186,7 @@
                 </vscode-button>
                 <vscode-button
                   appearance="icon"
-                  title="Forget this config"
+                  title="Stop tracking (leaves the config file unchanged)"
                   @click="removeCustomConfig(config.path)"
                   :disabled="isCustomButtonDisabled(config.path)"
                 >

@@ -8,15 +8,8 @@ import {
   normalizeCustomConfigPath,
   setCustomMcpConfig,
   getCustomMcpConfigStatuses,
-  removeCustomMcpConfigServers,
 } from "../extension/commands/manageMcpIntegrations";
 
-/**
- * Real, runnable coverage for the "Custom MCP config" feature (BRU-5720).
- * These tests exercise the exact functions the extension calls when a user
- * clicks Add / Enable / Disable — pointed at a throwaway temp file instead of a
- * real client's config, so no CoCo / Snowflake / Cursor install is needed.
- */
 suite("Custom MCP config", () => {
   let tmpDir: string;
   let configPath: string;
@@ -115,16 +108,5 @@ suite("Custom MCP config", () => {
       () => setCustomMcpConfig(configPath, "cloud", true, "   "),
       /API token is required/
     );
-  });
-
-  test("removeCustomMcpConfigServers strips both local and cloud entries", async () => {
-    await setCustomMcpConfig(configPath, "bruin", true);
-    await setCustomMcpConfig(configPath, "cloud", true, "test-token-123");
-
-    await removeCustomMcpConfigServers(configPath);
-
-    const config = readConfig();
-    assert.strictEqual(config.mcpServers.bruin, undefined);
-    assert.strictEqual(config.mcpServers.bruin_cloud, undefined);
   });
 });
