@@ -88,6 +88,42 @@ import {
       }
     }
   
+    public static async renderNewQuery(extensionUri: Uri, connectionName?: string, environmentName?: string) {
+      try {
+        const workspaceFolder = workspace.workspaceFolders?.[0];
+        if (!workspaceFolder) {
+          throw new Error("Workspace folder not found");
+        }
+
+        const tempDir = path.join(workspaceFolder.uri.fsPath, "logs");
+        if (!fs.existsSync(tempDir)) {
+          fs.mkdirSync(tempDir, { recursive: true });
+        }
+
+        const tempFileName = `tmp_${Date.now()}.sql`;
+        const tempFilePath = path.join(tempDir, tempFileName);
+        this.tempFiles.add(tempFilePath);
+
+        let initialContent = `-- environment: ${environmentName || 'default'}\n`;
+        initialContent += `-- connection: ${connectionName || 'default'}\n\n`;
+
+        fs.writeFileSync(tempFilePath, initialContent);
+
+        const uri = Uri.file(tempFilePath);
+        const doc = await workspace.openTextDocument(uri);
+
+        await window.showTextDocument(doc, {
+          viewColumn: ViewColumn.One,
+          preview: false,
+          selection: new Range(new Position(2, 0), new Position(2, 0))
+        });
+
+        await QueryPreviewPanel.focusSafely();
+      } catch (error) {
+        window.showErrorMessage(`New query error: ${error}`);
+      }
+    }
+
     private static cleanup() {
       this.tempFiles.forEach(filePath => {
         try {

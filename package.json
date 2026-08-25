@@ -327,6 +327,11 @@
           "group": "inline"
         },
         {
+          "command": "bruin.newQueryFromSchema",
+          "when": "view == bruinConnections && viewItem == 'schema'",
+          "group": "inline@1"
+        },
+        {
           "command": "bruin.refreshSchema",
           "when": "view == bruinConnections && viewItem == 'schema'",
           "group": "inline@2"
@@ -362,6 +367,13 @@
         "category": "Bruin",
         "icon": "$(refresh)",
         "description": "Refresh a single schema."
+      },
+      {
+        "command": "bruin.newQueryFromSchema",
+        "title": "New Query",
+        "category": "Bruin",
+        "icon": "$(add)",
+        "description": "Open a new empty query connected to this database."
       },
       {
         "command": "bruin.showConnectionDetails",
