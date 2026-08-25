@@ -658,6 +658,21 @@ export async function activate(context: ExtensionContext) {
         vscode.window.showErrorMessage(`Error showing walkthrough: ${errorMessage}`);
       }
     }),
+    commands.registerCommand("bruin.newQueryFromSchema", (item: any) => {
+      try {
+        trackEvent("Command Executed", { command: "newQueryFromSchema", source: "user" });
+        if (item && item.itemData) {
+          TableDetailsPanel.renderNewQuery(
+            context.extensionUri,
+            item.itemData.connectionName,
+            item.itemData.environment
+          );
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error opening new query: ${errorMessage}`);
+      }
+    }),
     commands.registerCommand(
       "bruin.showTableDetails",
       (tableName: string, schemaName?: string, connectionName?: string, environmentName?: string) => {

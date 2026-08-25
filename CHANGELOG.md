@@ -1,4 +1,7 @@
 # Changelog
+## [0.84.1]
+- Added a "+" button on databases in the Databases panel to open a new empty query already connected to that database, without having to pick a table and clear the generated SELECT.
+
 ## [0.84.0]
 - Add Bruin MCP to any client that uses the standard `mcpServers` config (e.g. CoCo) by pointing at its config file, alongside the built-in one-click clients.
 
