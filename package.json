@@ -5,7 +5,7 @@
   "version": "0.84.0",
   "dacFrontend": {
     "repo": "bruin-data/dac",
-    "version": "v0.12.0",
+    "version": "v0.13.2",
     "asset": "dac-frontend.tar.gz"
   },
   "engines": {
