@@ -1,4 +1,7 @@
 # Changelog
+## [0.84.2] - [2026-08-28]
+- Added a "Full Refresh" toggle to ingestr assets that sets `parameters.full_refresh: true`, so the asset always runs in full-refresh mode (e.g. for a periodic full load to detect deleted source records), independent of the run-time full-refresh checkbox.
+
 ## [0.84.1]
 - Added a "+" button on databases in the Databases panel to open a new empty query connected to that database.
 

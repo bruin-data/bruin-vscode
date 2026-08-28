@@ -89,6 +89,7 @@ After installing, run the **Bruin: Show Getting Started Walkthrough** command fr
 ## Release Notes
 
 ### Recent Update
+- **0.84.2**: Added a "Full Refresh" toggle to ingestr assets that sets `parameters.full_refresh: true`, so the asset always runs in full-refresh mode (e.g. for a periodic full load to detect deleted source records), independent of the run-time full-refresh checkbox.
 - **0.84.1**: Added a "+" button on databases in the Databases panel to open a new empty query connected to that database.
 - **0.84.0**: Configure Bruin MCP for any client using the standard `mcpServers` config (e.g. CoCo) via a custom config path, alongside the built-in one-click clients.
 - **0.83.6**: Fixed column lineage not drawing edges (or highlighting on hover) for assets with uppercase letters in their names.

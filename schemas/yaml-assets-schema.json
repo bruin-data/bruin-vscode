@@ -259,6 +259,10 @@
                 "default",
                 "direct"
               ]
+            },
+            "full_refresh": {
+              "type": "boolean",
+              "description": "When true, this asset always runs in full-refresh mode, even when the run does not use --full-refresh. Use full_refresh_restricted to opt an asset out of full-refresh runs."
             }
           },
           "additionalProperties": true,
