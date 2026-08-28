@@ -285,7 +285,7 @@
             </div>
 
             <!-- Empty state -->
-            <div v-if="!displayParams.source_connection && !displayParams.source_table && !displayParams.destination" class="text-xs text-editor-fg opacity-60 italic py-2 text-center">
+            <div v-if="!displayParams.source_connection && !displayParams.source_table && !displayParams.destination && !displayParams.full_refresh" class="text-xs text-editor-fg opacity-60 italic py-2 text-center">
               No parameters configured
             </div>
           </div>

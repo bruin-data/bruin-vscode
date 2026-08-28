@@ -12,9 +12,7 @@ const baseParams = {
   destination: "postgres",
 };
 
-// The repo's test setup (setup.ts) creates a second JSDOM that breaks
-// querySelector on freshly-mounted components, so we drive the toggle through
-// the component's setup state rather than clicking the rendered checkbox.
+// Drive the toggle via setup state (DOM queries are unreliable in this harness).
 const setup = (wrapper: any) => (wrapper.vm as any).$.setupState;
 
 describe("IngestrAssetDisplay full_refresh", () => {
@@ -54,5 +52,13 @@ describe("IngestrAssetDisplay full_refresh", () => {
       props: { parameters: { ...baseParams, full_refresh: true }, columns: [] },
     });
     expect(on.text()).toContain("Full Refresh:");
+  });
+
+  it("does not show the empty state when full_refresh is the only parameter", () => {
+    const wrapper = mount(IngestrAssetDisplay, {
+      props: { parameters: { full_refresh: true }, columns: [] },
+    });
+    expect(wrapper.text()).toContain("Full Refresh:");
+    expect(wrapper.text()).not.toContain("No parameters configured");
   });
 });
