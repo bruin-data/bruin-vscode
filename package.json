@@ -2,7 +2,7 @@
   "name": "bruin",
   "displayName": "Bruin",
   "description": "Manage your Bruin data assets from within VS Code.",
-  "version": "0.84.1",
+  "version": "0.84.2",
   "dacFrontend": {
     "repo": "bruin-data/dac",
     "version": "v0.13.2",
