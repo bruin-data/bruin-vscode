@@ -221,6 +221,38 @@
               </span>
             </div>
           </div>
+
+          <!-- Full Refresh -->
+          <div id="full-refresh-row" class="flex items-start gap-2">
+            <span
+              id="full-refresh-label"
+              class="text-2xs text-editor-fg opacity-70 min-w-[140px] pt-1"
+            >Full Refresh:</span>
+            <div id="full-refresh-field" class="flex-1 text-xs text-editor-fg">
+              <div class="flex items-center gap-2 px-2 py-1">
+                <button
+                  id="full-refresh-toggle"
+                  type="button"
+                  role="switch"
+                  :aria-checked="!!localParameters.full_refresh"
+                  @click="toggleFullRefresh"
+                  class="relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-1 focus:ring-editorLink-activeFg"
+                  :class="localParameters.full_refresh ? 'bg-button-bg' : 'bg-input-background border border-commandCenter-border'"
+                >
+                  <span
+                    class="inline-block h-3 w-3 transform rounded-full bg-editor-fg transition-transform duration-150"
+                    :class="localParameters.full_refresh ? 'translate-x-3.5' : 'translate-x-0.5'"
+                  ></span>
+                </button>
+                <span class="opacity-80">{{ localParameters.full_refresh ? 'Always full refresh' : 'Off' }}</span>
+                <span
+                  id="full-refresh-hint"
+                  class="codicon codicon-info text-[10px] opacity-40 cursor-help hover:opacity-70"
+                  title="When on, this asset always runs in full-refresh mode — even when the run doesn't use --full-refresh. Useful for a periodic full load (e.g. to detect deleted source records)."
+                ></span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Rendered View (Read-only, default) -->
@@ -246,6 +278,10 @@
             <div v-if="displayParams.incremental_key" class="flex items-center gap-2">
               <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Incremental Key:</span>
               <span class="text-xs text-editor-fg">{{ displayParams.incremental_key }}</span>
+            </div>
+            <div v-if="displayParams.full_refresh" class="flex items-center gap-2">
+              <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Full Refresh:</span>
+              <span class="text-xs text-editor-fg">Always</span>
             </div>
 
             <!-- Empty state -->
@@ -291,6 +327,7 @@ const localParameters = ref<IngestrParameters>({
   destination: props.parameters?.destination || '',
   incremental_strategy: props.parameters?.incremental_strategy || '',
   incremental_key: props.parameters?.incremental_key || '',
+  full_refresh: props.parameters?.full_refresh || false,
 });
 
 const editingField = ref<Record<string, boolean>>({});
@@ -315,6 +352,7 @@ const displayParams = computed(() => {
     destination: local.destination ? destinationDisplayName(local.destination) : '',
     incremental_strategy: local.incremental_strategy || '',
     incremental_key: local.incremental_key || '',
+    full_refresh: local.full_refresh || false,
   };
 });
 
@@ -509,7 +547,18 @@ const saveParameters = () => {
     }
   });
 
+  // full_refresh is only meaningful when true; drop it otherwise so the YAML stays clean.
+  if (!localParameters.value.full_refresh) {
+    delete updatedParameters.full_refresh;
+  }
+
   emit('save', updatedParameters as IngestrParameters);
+};
+
+const toggleFullRefresh = () => {
+  localParameters.value.full_refresh = !localParameters.value.full_refresh;
+  isInternalUpdate.value = true;
+  saveParameters();
 };
 
 onMounted(() => {
@@ -679,6 +728,7 @@ watch(
         destination: newParameters.destination || '',
         incremental_strategy: newParameters.incremental_strategy || '',
         incremental_key: newParameters.incremental_key || '',
+        full_refresh: newParameters.full_refresh || false,
       };
 
       if (!isInternalUpdate.value) {

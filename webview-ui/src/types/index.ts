@@ -228,6 +228,7 @@ export interface IngestrParameters {
   destination: string;
   incremental_strategy?: string;
   incremental_key?: string;
+  full_refresh?: boolean;
 }
 
 export interface PipelineColumnInfo {
