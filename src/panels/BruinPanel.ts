@@ -1882,7 +1882,13 @@ export class BruinPanel {
         return;
       }
 
-      const isAsset = await this._isAssetFile(filePath);
+      // One parser shared between the asset check and the render, so parseAsset
+      // reuses checkIfAsset's result instead of spawning the CLI a second time.
+      const parser = new BruinInternalParse(
+        getBruinExecutablePath(),
+        vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || ""
+      );
+      const isAsset = await this._isAssetFile(filePath, parser);
       if (this._assetDetectionGeneration !== generation) { return; }
       console.log("_performAssetDetection: CLI determined file is an asset:", filePath, isAsset);
       if (isAsset) {
@@ -1893,7 +1899,7 @@ export class BruinPanel {
         });
         console.log("_performAssetDetection: Sending clear message to the UI for asset:", filePath);
         if (this._cliInstalled) {
-          parseAssetCommand(fileUri);
+          parser.parseAsset(filePath);
         }
         return;
       }
@@ -1918,7 +1924,7 @@ export class BruinPanel {
           filePath: filePath,
         });
         if (this._cliInstalled) {
-          parseAssetCommand(fileUri);
+          parser.parseAsset(filePath);
         }
       }
     } catch (error) {
@@ -1991,7 +1997,7 @@ export class BruinPanel {
     }
   }
 
-  private async _isAssetFile(filePath: string): Promise<boolean> {
+  private async _isAssetFile(filePath: string, parser?: BruinInternalParse): Promise<boolean> {
 
     try {
       // For YAML files, check if file already has .asset.yml or .asset.yaml extension first
@@ -2001,14 +2007,15 @@ export class BruinPanel {
         return true;
       }
 
-      // Primary method: Use CLI internal parse command
+      // Primary method: Use CLI internal parse command. Reuse the caller's parser
+      // so parseAsset can share checkIfAsset's result and skip a second CLI spawn.
       const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
-      const parser = new BruinInternalParse(
+      const assetParser = parser ?? new BruinInternalParse(
         getBruinExecutablePath(),
         workspaceFolder
       );
-      
-      const isAsset = await parser.checkIfAsset(filePath);
+
+      const isAsset = await assetParser.checkIfAsset(filePath);
       console.log(`_isAssetFile: CLI asset check result for ${filePath}: ${isAsset}`);
       
       if (isAsset) {

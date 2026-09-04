@@ -4067,9 +4067,36 @@ suite(" Query export Tests", () => {
       sinon.assert.calledOnce(consoleTimeEndStub);
     });
 
+    test("parseAsset reuses checkIfAsset's result without a second CLI call", async () => {
+      const filePath = "path/to/assets/raw_orders.sql";
+      const raw = JSON.stringify({ asset: { name: "raw_orders" }, pipeline: { name: "p" } });
+      runStub.resolves(raw);
+
+      const isAsset = await bruinInternalParse.checkIfAsset(filePath);
+      assert.strictEqual(isAsset, true);
+      sinon.assert.calledOnce(runStub); // checkIfAsset ran the CLI once
+
+      await bruinInternalParse.parseAsset(filePath);
+
+      // parseAsset reused the cached result instead of spawning the CLI again
+      sinon.assert.calledOnce(runStub);
+      sinon.assert.calledWith(postMessageToPanelsStub, "success", raw);
+    });
+
+    test("parseAsset does a fresh CLI call when no result was prefetched", async () => {
+      const filePath = "path/to/assets/raw_orders.sql";
+      const raw = JSON.stringify({ asset: { name: "raw_orders" } });
+      runStub.resolves(raw);
+
+      await bruinInternalParse.parseAsset(filePath);
+
+      sinon.assert.calledOnce(runStub);
+      sinon.assert.calledWith(runStub, ["parse-asset", filePath], { ignoresErrors: false });
+    });
+
     test("should handle bruin.yml files", async () => {
       const filePath = "path/to/bruin.yml";
-      
+
       await bruinInternalParse.parseAsset(filePath);
       
       sinon.assert.calledOnce(postMessageToPanelsStub);
