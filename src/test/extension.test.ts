@@ -4019,15 +4019,15 @@ suite(" Query export Tests", () => {
       sinon.assert.calledWith(parsePipelineConfigStub, filePath);
     });
 
-    test("should handle pipeline parsing timeout", async () => {
+    test("should surface pipeline parsing errors", async () => {
       const filePath = "path/to/pipeline.yml";
-      
-      parsePipelineConfigStub.rejects(new Error("Parsing timeout"));
-      
+
+      parsePipelineConfigStub.rejects(new Error("parse failed"));
+
       await bruinInternalParse.parseAsset(filePath);
-      
+
       sinon.assert.calledOnce(postMessageToPanelsStub);
-      sinon.assert.calledWith(postMessageToPanelsStub, "error", "Parsing timeout");
+      sinon.assert.calledWith(postMessageToPanelsStub, "error", "parse failed");
       sinon.assert.calledOnce(consoleTimeEndStub);
     });
 

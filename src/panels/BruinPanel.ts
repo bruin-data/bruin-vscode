@@ -92,6 +92,7 @@ export class BruinPanel {
   private _flags: string = "";
   private _assetDetectionDebounceTimer: NodeJS.Timeout | undefined;
   private _assetDetectionGeneration: number = 0;
+  private _lastDetectedFilePath: string | undefined;
   private _renderDebounceTimer: NodeJS.Timeout | undefined;
   private _cliInstalled: boolean | null = null;
   private _initialSettingsOnlyMode: boolean = false;
@@ -1841,7 +1842,8 @@ export class BruinPanel {
     // Increment generation to invalidate any in-flight detection
     const generation = ++this._assetDetectionGeneration;
 
-    const isFileSwitch = this._lastRenderedDocumentUri?.fsPath !== filePath;
+    const isFileSwitch = this._lastDetectedFilePath !== filePath;
+    this._lastDetectedFilePath = filePath;
 
     if (isFileSwitch) {
       await this._performAssetDetection(filePath, fileUri, generation);

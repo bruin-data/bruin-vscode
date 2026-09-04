@@ -16,13 +16,9 @@ export class BruinInternalParse extends BruinCommand {
     try {
       if (filePath.endsWith("pipeline.yml") || filePath.endsWith("pipeline.yaml")) {
         const parser = new BruinLineageInternalParse(this.bruinExecutable, this.workingDirectory);
-        
-        // Use Promise.race to limit parsing time
-        const pipelineMeta = await Promise.race([
-          parser.parsePipelineConfig(filePath),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("Parsing timeout")), 300))
-        ]);
-        
+
+        const pipelineMeta = await parser.parsePipelineConfig(filePath);
+
         const result = JSON.stringify({ type: "pipelineConfig", ...pipelineMeta, filePath });
         this.postMessageToPanels("success", result);
         console.timeEnd("parseAsset");
