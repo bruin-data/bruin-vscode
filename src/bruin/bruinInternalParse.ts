@@ -4,6 +4,10 @@ import { BruinPanel } from "../panels/BruinPanel";
 import { BruinLineageInternalParse } from "./bruinFlowLineage";
 
 export class BruinInternalParse extends BruinCommand {
+  // Result cached by checkIfAsset so a following parseAsset for the same file
+  // reuses it instead of spawning the CLI a second time (asset-switch latency).
+  private _prefetchedParse?: { filePath: string; raw: string };
+
   protected bruinCommand(): string {
     return "internal";
   }
@@ -16,13 +20,18 @@ export class BruinInternalParse extends BruinCommand {
     try {
       if (filePath.endsWith("pipeline.yml") || filePath.endsWith("pipeline.yaml")) {
         const parser = new BruinLineageInternalParse(this.bruinExecutable, this.workingDirectory);
-        
-        // Use Promise.race to limit parsing time
+
+        // 30s deadline so a hung CLI surfaces an error without failing real pipelines.
+        let timeout: NodeJS.Timeout | undefined;
         const pipelineMeta = await Promise.race([
           parser.parsePipelineConfig(filePath),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("Parsing timeout")), 300))
-        ]);
-        
+          new Promise((_, reject) => {
+            timeout = setTimeout(() => reject(new Error("Parsing timeout")), 30000);
+          })
+        ]).finally(() => {
+          if (timeout) { clearTimeout(timeout); }
+        });
+
         const result = JSON.stringify({ type: "pipelineConfig", ...pipelineMeta, filePath });
         this.postMessageToPanels("success", result);
         console.timeEnd("parseAsset");
@@ -32,6 +41,15 @@ export class BruinInternalParse extends BruinCommand {
       if (filePath.endsWith("bruin.yml") || filePath.endsWith("bruin.yaml")) {
         const result = JSON.stringify({ type: "bruinConfig", filePath });
         this.postMessageToPanels("success", result);
+        console.timeEnd("parseAsset");
+        return;
+      }
+
+      // Reuse a result already fetched by checkIfAsset for this same file.
+      if (this._prefetchedParse && this._prefetchedParse.filePath === filePath) {
+        const raw = this._prefetchedParse.raw;
+        this._prefetchedParse = undefined;
+        this.postMessageToPanels("success", raw);
         console.timeEnd("parseAsset");
         return;
       }
@@ -92,7 +110,9 @@ export class BruinInternalParse extends BruinCommand {
       }
 
       const parsed = JSON.parse(result);
-      console.log("checkIfAsset: CLI result parsed:", { 
+      // Cache the verified-JSON result so a following parseAsset can reuse it.
+      this._prefetchedParse = { filePath, raw: result };
+      console.log("checkIfAsset: CLI result parsed:", {
         hasAsset: parsed.asset !== null && parsed.asset !== undefined,
         assetValue: parsed.asset 
       });

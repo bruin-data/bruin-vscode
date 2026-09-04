@@ -2184,6 +2184,42 @@ suite("BruinPanel Tests", () => {
     });
   });
 
+  suite("Asset detection on editor switch", () => {
+    let panel: BruinPanel;
+    setup(() => {
+      BruinPanel.render(mockExtensionUri);
+      panel = BruinPanel.currentPanel!;
+    });
+
+    test("switching to a different file runs detection immediately", async () => {
+      const performStub = sinon
+        .stub(panel as any, "_performAssetDetection")
+        .resolves();
+      const fileA = vscode.Uri.file("/mock/assets/a.sql");
+      const fileB = vscode.Uri.file("/mock/assets/b.sql");
+
+      await (panel as any)._handleAssetDetection(fileA);
+      await (panel as any)._handleAssetDetection(fileB);
+
+      // A switch runs detection synchronously, not via the 500ms debounce.
+      assert.strictEqual(performStub.callCount, 2, "each switch should run detection immediately");
+      sinon.assert.calledWith(performStub.secondCall, fileB.fsPath, fileB);
+    });
+
+    test("re-triggering the same file defers behind the debounce timer", async () => {
+      const performStub = sinon
+        .stub(panel as any, "_performAssetDetection")
+        .resolves();
+      const file = vscode.Uri.file("/mock/assets/a.sql");
+
+      await (panel as any)._handleAssetDetection(file); // switch → immediate
+      assert.strictEqual(performStub.callCount, 1, "first detection should run immediately");
+
+      await (panel as any)._handleAssetDetection(file); // same file → debounced, not immediate
+      assert.strictEqual(performStub.callCount, 1, "same-file re-trigger should not run synchronously");
+    });
+  });
+
   suite("Message Handling", () => {
     let panel: BruinPanel;
     let messageHandler: (message: any) => void;
@@ -4019,21 +4055,48 @@ suite(" Query export Tests", () => {
       sinon.assert.calledWith(parsePipelineConfigStub, filePath);
     });
 
-    test("should handle pipeline parsing timeout", async () => {
+    test("should surface pipeline parsing errors", async () => {
       const filePath = "path/to/pipeline.yml";
-      
-      parsePipelineConfigStub.rejects(new Error("Parsing timeout"));
-      
+
+      parsePipelineConfigStub.rejects(new Error("parse failed"));
+
       await bruinInternalParse.parseAsset(filePath);
-      
+
       sinon.assert.calledOnce(postMessageToPanelsStub);
-      sinon.assert.calledWith(postMessageToPanelsStub, "error", "Parsing timeout");
+      sinon.assert.calledWith(postMessageToPanelsStub, "error", "parse failed");
       sinon.assert.calledOnce(consoleTimeEndStub);
+    });
+
+    test("parseAsset reuses checkIfAsset's result without a second CLI call", async () => {
+      const filePath = "path/to/assets/raw_orders.sql";
+      const raw = JSON.stringify({ asset: { name: "raw_orders" }, pipeline: { name: "p" } });
+      runStub.resolves(raw);
+
+      const isAsset = await bruinInternalParse.checkIfAsset(filePath);
+      assert.strictEqual(isAsset, true);
+      sinon.assert.calledOnce(runStub); // checkIfAsset ran the CLI once
+
+      await bruinInternalParse.parseAsset(filePath);
+
+      // parseAsset reused the cached result instead of spawning the CLI again
+      sinon.assert.calledOnce(runStub);
+      sinon.assert.calledWith(postMessageToPanelsStub, "success", raw);
+    });
+
+    test("parseAsset does a fresh CLI call when no result was prefetched", async () => {
+      const filePath = "path/to/assets/raw_orders.sql";
+      const raw = JSON.stringify({ asset: { name: "raw_orders" } });
+      runStub.resolves(raw);
+
+      await bruinInternalParse.parseAsset(filePath);
+
+      sinon.assert.calledOnce(runStub);
+      sinon.assert.calledWith(runStub, ["parse-asset", filePath], { ignoresErrors: false });
     });
 
     test("should handle bruin.yml files", async () => {
       const filePath = "path/to/bruin.yml";
-      
+
       await bruinInternalParse.parseAsset(filePath);
       
       sinon.assert.calledOnce(postMessageToPanelsStub);
