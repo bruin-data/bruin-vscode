@@ -17,9 +17,7 @@ export class BruinInternalParse extends BruinCommand {
       if (filePath.endsWith("pipeline.yml") || filePath.endsWith("pipeline.yaml")) {
         const parser = new BruinLineageInternalParse(this.bruinExecutable, this.workingDirectory);
 
-        // Bound the parse so a hung CLI process still surfaces an error, but give
-        // real pipelines room to finish — the previous 300ms cap failed almost
-        // every non-trivial pipeline and left the panel showing stale content.
+        // 30s deadline so a hung CLI surfaces an error without failing real pipelines.
         let timeout: NodeJS.Timeout | undefined;
         const pipelineMeta = await Promise.race([
           parser.parsePipelineConfig(filePath),

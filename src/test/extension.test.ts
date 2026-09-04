@@ -2201,8 +2201,7 @@ suite("BruinPanel Tests", () => {
       await (panel as any)._handleAssetDetection(fileA);
       await (panel as any)._handleAssetDetection(fileB);
 
-      // Both are switches to a new file, so detection runs synchronously
-      // instead of taking the 500ms debounce path (the listener-ordering bug).
+      // A switch runs detection synchronously, not via the 500ms debounce.
       assert.strictEqual(performStub.callCount, 2, "each switch should run detection immediately");
       sinon.assert.calledWith(performStub.secondCall, fileB.fsPath, fileB);
     });
