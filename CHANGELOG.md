@@ -1,4 +1,7 @@
 # Changelog
+## [0.84.3]
+- Fixed the asset panel showing stale content when switching between open assets (most noticeable on Windows) — it now refreshes immediately instead of needing the Bruin tab closed and reopened.
+
 ## [0.84.2] - [2026-08-28]
 - Added a "Full Refresh" toggle to ingestr assets that sets `parameters.full_refresh: true`, so the asset always runs in full-refresh mode (e.g. for a periodic full load to detect deleted source records), independent of the run-time full-refresh checkbox.
 

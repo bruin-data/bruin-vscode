@@ -2184,6 +2184,43 @@ suite("BruinPanel Tests", () => {
     });
   });
 
+  suite("Asset detection on editor switch", () => {
+    let panel: BruinPanel;
+    setup(() => {
+      BruinPanel.render(mockExtensionUri);
+      panel = BruinPanel.currentPanel!;
+    });
+
+    test("switching to a different file runs detection immediately", async () => {
+      const performStub = sinon
+        .stub(panel as any, "_performAssetDetection")
+        .resolves();
+      const fileA = vscode.Uri.file("/mock/assets/a.sql");
+      const fileB = vscode.Uri.file("/mock/assets/b.sql");
+
+      await (panel as any)._handleAssetDetection(fileA);
+      await (panel as any)._handleAssetDetection(fileB);
+
+      // Both are switches to a new file, so detection runs synchronously
+      // instead of taking the 500ms debounce path (the listener-ordering bug).
+      assert.strictEqual(performStub.callCount, 2, "each switch should run detection immediately");
+      sinon.assert.calledWith(performStub.secondCall, fileB.fsPath, fileB);
+    });
+
+    test("re-triggering the same file defers behind the debounce timer", async () => {
+      const performStub = sinon
+        .stub(panel as any, "_performAssetDetection")
+        .resolves();
+      const file = vscode.Uri.file("/mock/assets/a.sql");
+
+      await (panel as any)._handleAssetDetection(file); // switch → immediate
+      assert.strictEqual(performStub.callCount, 1, "first detection should run immediately");
+
+      await (panel as any)._handleAssetDetection(file); // same file → debounced, not immediate
+      assert.strictEqual(performStub.callCount, 1, "same-file re-trigger should not run synchronously");
+    });
+  });
+
   suite("Message Handling", () => {
     let panel: BruinPanel;
     let messageHandler: (message: any) => void;
