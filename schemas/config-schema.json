@@ -92,6 +92,52 @@
                 "api_key"
             ]
         },
+        "AbraFlexiConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "company": {
+                    "type": "string"
+                },
+                "scheme": {
+                    "type": "string"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "rate_limit": {
+                    "type": "number"
+                },
+                "include_expensive": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "host",
+                "username",
+                "password",
+                "company"
+            ]
+        },
         "AdaptyConnection": {
             "properties": {
                 "name": {
@@ -817,6 +863,25 @@
                 "api_token"
             ]
         },
+        "CloudflareRadarConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_token": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_token"
+            ]
+        },
         "Connections": {
             "properties": {
                 "aws": {
@@ -1239,6 +1304,12 @@
                     },
                     "type": "array"
                 },
+                "cloudflare_radar": {
+                    "items": {
+                        "$ref": "#/definitions/CloudflareRadarConnection"
+                    },
+                    "type": "array"
+                },
                 "mailchimp": {
                     "items": {
                         "$ref": "#/definitions/MailchimpConnection"
@@ -1329,6 +1400,12 @@
                     },
                     "type": "array"
                 },
+                "twocheckout": {
+                    "items": {
+                        "$ref": "#/definitions/TwoCheckoutConnection"
+                    },
+                    "type": "array"
+                },
                 "payrails": {
                     "items": {
                         "$ref": "#/definitions/PayrailsConnection"
@@ -1416,6 +1493,42 @@
                 "applovin": {
                     "items": {
                         "$ref": "#/definitions/AppLovinConnection"
+                    },
+                    "type": "array"
+                },
+                "sklik": {
+                    "items": {
+                        "$ref": "#/definitions/SklikConnection"
+                    },
+                    "type": "array"
+                },
+                "sumble": {
+                    "items": {
+                        "$ref": "#/definitions/SumbleConnection"
+                    },
+                    "type": "array"
+                },
+                "twenty": {
+                    "items": {
+                        "$ref": "#/definitions/TwentyConnection"
+                    },
+                    "type": "array"
+                },
+                "abraflexi": {
+                    "items": {
+                        "$ref": "#/definitions/AbraFlexiConnection"
+                    },
+                    "type": "array"
+                },
+                "satismeter": {
+                    "items": {
+                        "$ref": "#/definitions/SatisMeterConnection"
+                    },
+                    "type": "array"
+                },
+                "deel": {
+                    "items": {
+                        "$ref": "#/definitions/DeelConnection"
                     },
                     "type": "array"
                 },
@@ -1964,6 +2077,28 @@
                 "region",
                 "workspace",
                 "execution_role"
+            ]
+        },
+        "DeelConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "environment": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
             ]
         },
         "DoceboConnection": {
@@ -4678,6 +4813,29 @@
                 "domain"
             ]
         },
+        "SatisMeterConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key",
+                "project_id"
+            ]
+        },
         "SendgridConnection": {
             "properties": {
                 "name": {
@@ -4774,6 +4932,28 @@
                 "name",
                 "url",
                 "api_key"
+            ]
+        },
+        "SklikConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "token"
             ]
         },
         "SlackConnection": {
@@ -5177,6 +5357,25 @@
                 "api_key"
             ]
         },
+        "SumbleConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
         "SurveyMonkeyConnection": {
             "properties": {
                 "name": {
@@ -5402,6 +5601,44 @@
                 "api_key"
             ]
         },
+        "TwentyConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "scheme": {
+                    "type": "string"
+                },
+                "base_path": {
+                    "type": "string"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "rate_limit": {
+                    "type": "number"
+                },
+                "include_deleted": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "host",
+                "api_key"
+            ]
+        },
         "TwilioConnection": {
             "properties": {
                 "name": {
@@ -5428,6 +5665,32 @@
             "required": [
                 "name",
                 "account_sid"
+            ]
+        },
+        "TwoCheckoutConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "merchant_code": {
+                    "type": "string"
+                },
+                "secret_key": {
+                    "type": "string"
+                },
+                "base_url": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "merchant_code",
+                "secret_key"
             ]
         },
         "TypeformConnection": {
@@ -5477,6 +5740,15 @@
                     "type": "string"
                 },
                 "schema": {
+                    "type": "string"
+                },
+                "tlsmode": {
+                    "type": "string"
+                },
+                "connection_load_balance": {
+                    "type": "integer"
+                },
+                "backup_server_node": {
                     "type": "string"
                 }
             },
