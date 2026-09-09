@@ -1,4 +1,7 @@
 # Changelog
+## [0.84.4]
+- Added an environment selector to the SQL query preview toolbar, so you can preview queries against a different environment without changing the default in `.bruin.yml`. The choice is pinned for the session; pick "Follow asset panel" to track the asset panel's environment again.
+
 ## [0.84.3]
 - Fixed the asset panel showing stale content when switching between open assets (most noticeable on Windows) — it now refreshes immediately instead of needing the Bruin tab closed and reopened, and switching between assets is faster (the asset is parsed once per switch instead of twice).
 

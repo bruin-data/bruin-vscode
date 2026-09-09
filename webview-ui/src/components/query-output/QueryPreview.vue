@@ -83,22 +83,72 @@
           <!-- Search Component -->
           <div class="flex items-center space-x-2">
             <span class="text-2xs text-editor-fg opacity-65">Running in:</span>
-            <div class="flex items-center gap-1">
-              <vscode-badge :class="badgeClass" class="truncate">
-                {{ displayEnvironment }}
-              </vscode-badge>
-              <button
-                :title="isEnvironmentLocked ? 'Unlock environment (currently locked to ' + lockedEnvironment + ')' : 'Lock environment to prevent changes'"
-                @click="toggleEnvironmentLock"
-                class="flex items-center justify-center p-0.5 hover:bg-editorWidget-bg rounded"
+            <Menu as="div" class="relative">
+              <MenuButton
+                :title="isEnvironmentLocked ? 'Environment pinned to ' + lockedEnvironment + ' for this session (click to change)' : 'Change SQL preview environment'"
+                class="flex items-center gap-1"
               >
+                <vscode-badge :class="badgeClass" class="truncate cursor-pointer">
+                  {{ displayEnvironment }}
+                </vscode-badge>
                 <span
-                  class="codicon"
-                  style="font-size: 12px;"
-                  :class="isEnvironmentLocked ? 'codicon-lock text-yellow-500' : 'codicon-unlock opacity-40'"
+                  v-if="isEnvironmentLocked"
+                  class="codicon codicon-pinned text-yellow-500"
+                  style="font-size: 10px"
+                  title="Pinned for this session"
                 ></span>
-              </button>
-            </div>
+                <ChevronDownIcon class="h-3 w-3 opacity-60" />
+              </MenuButton>
+              <transition
+                enter-active-class="transition ease-out duration-100"
+                enter-from-class="transform opacity-0 scale-95"
+                enter-to-class="transform opacity-100 scale-100"
+                leave-active-class="transition ease-in duration-75"
+                leave-from-class="transform opacity-100 scale-100"
+                leave-to-class="transform opacity-0 scale-95"
+              >
+                <MenuItems class="absolute right-0 z-50 mt-1 w-56 origin-top-right">
+                  <div
+                    class="p-1 bg-editorWidget-bg rounded-sm border border-commandCenter-border shadow-lg max-h-64 overflow-y-auto"
+                  >
+                    <MenuItem v-slot="{ active }">
+                      <button
+                        @click="resetEnvironmentToDefault"
+                        class="w-full px-2 py-1 text-left text-xs rounded-sm flex items-center justify-between"
+                        :class="active ? 'bg-list-hoverBackground text-editor-fg' : 'text-editor-fg'"
+                      >
+                        <span class="opacity-80">Follow asset panel<span v-if="props.environment"> ({{ props.environment }})</span></span>
+                        <span
+                          v-if="!isEnvironmentLocked"
+                          class="codicon codicon-check text-green-500"
+                        ></span>
+                      </button>
+                    </MenuItem>
+                    <div
+                      v-if="availableEnvironments.length"
+                      class="border-t border-commandCenter-border my-1"
+                    ></div>
+                    <MenuItem
+                      v-for="env in availableEnvironments"
+                      :key="env"
+                      v-slot="{ active }"
+                    >
+                      <button
+                        @click="selectEnvironment(env)"
+                        class="w-full px-2 py-1 text-left text-xs rounded-sm flex items-center justify-between"
+                        :class="active ? 'bg-list-hoverBackground text-editor-fg' : 'text-editor-fg'"
+                      >
+                        <span class="truncate">{{ env }}</span>
+                        <span
+                          v-if="isEnvironmentLocked && lockedEnvironment === env"
+                          class="codicon codicon-check text-green-500"
+                        ></span>
+                      </button>
+                    </MenuItem>
+                  </div>
+                </MenuItems>
+              </transition>
+            </Menu>
             <vscode-badge
               v-if="currentTab?.parsedOutput?.connectionName"
               :class="badgeClass"
@@ -708,6 +758,7 @@ const props = defineProps<{
   error: any;
   isLoading: boolean;
   environment: string;
+  environments?: string[];
   connectionName: string;
   isExportLoading: boolean;
   exportOutput: any;
@@ -1656,18 +1707,31 @@ const exportTabResults = () => {
   saveState();
 };
 
-const toggleEnvironmentLock = () => {
-  if (isEnvironmentLocked.value) {
-    // Unlock
-    isEnvironmentLocked.value = false;
-    lockedEnvironment.value = "";
-  } else {
-    // Lock to current environment
-    const envToLock = currentEnvironment.value || displayEnvironment.value;
-    if (envToLock) {
-      isEnvironmentLocked.value = true;
-      lockedEnvironment.value = envToLock;
-    }
+// Pin a specific environment for the SQL preview session. The selection sticks
+// across asset switches (via the lock mechanism) until reset to Default.
+const selectEnvironment = (env: string) => {
+  if (!env) return;
+  currentEnvironment.value = env;
+  isEnvironmentLocked.value = true;
+  lockedEnvironment.value = env;
+  tabs.value.forEach((tab) => {
+    tab.environment = env;
+  });
+  triggerRef(tabs);
+  saveState();
+};
+
+// Follow the environment selected in the asset panel / workspace default again.
+const resetEnvironmentToDefault = () => {
+  isEnvironmentLocked.value = false;
+  lockedEnvironment.value = "";
+  const defaultEnv = props.environment || connectionsStore?.getDefaultEnvironment?.() || "";
+  if (defaultEnv) {
+    currentEnvironment.value = defaultEnv;
+    tabs.value.forEach((tab) => {
+      tab.environment = defaultEnv;
+    });
+    triggerRef(tabs);
   }
   saveState();
 };
@@ -1785,17 +1849,20 @@ watch(
   { immediate: true }
 );
 
+const availableEnvironments = computed(() => props.environments ?? []);
+
 const displayEnvironment = computed(() => {
-  // If environment is locked, always show the locked environment
+  // Show what the next run will use: the pinned environment, otherwise the
+  // current selection (which follows the asset panel's environment dropdown).
   if (isEnvironmentLocked.value && lockedEnvironment.value) {
     return lockedEnvironment.value;
   }
   try {
     const storedEnv = connectionsStore?.getDefaultEnvironment?.();
-    return currentTab.value?.executedEnvironment || storedEnv || currentEnvironment.value || "";
+    return currentEnvironment.value || storedEnv || "";
   } catch (error) {
     console.warn("Error accessing store in QueryPreview:", error);
-    return currentTab.value?.executedEnvironment || currentEnvironment.value || "";
+    return currentEnvironment.value || "";
   }
 });
 
