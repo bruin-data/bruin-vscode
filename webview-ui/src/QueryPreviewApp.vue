@@ -6,6 +6,7 @@
       :error="errorValue"
       :isLoading="isLoading"
       :environment="selectedEnvironment"
+      :environments="environmentsList"
       :connectionName="output?.connectionName || ''"
       :isExportLoading="isExportLoading"
       :exportOutput="QueryExport"
@@ -40,6 +41,7 @@ const isLoading = ref(false); // Create a direct ref instead of computed
 const isExportLoading = ref(false);
 const initEnvironment = ref();
 const currentEnvironment = ref();
+const environmentsList = ref<string[]>([]);
 
 const handleMessage = (event) => {
   const message = event.data;
@@ -57,6 +59,9 @@ const handleMessage = (event) => {
       const envData = updateValue(message, "success");
       if (envData && envData.payload) {
         initEnvironment.value = JSON.parse(envData.payload);
+        environmentsList.value = (initEnvironment.value?.environments ?? [])
+          .map((env) => env?.name)
+          .filter(Boolean);
         if (!currentEnvironment.value) {
           currentEnvironment.value = initEnvironment.value?.selected_environment;
         }
