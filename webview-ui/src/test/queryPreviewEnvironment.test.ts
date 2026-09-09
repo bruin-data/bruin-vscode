@@ -75,7 +75,13 @@ const lastRunPayload = async () => {
 };
 
 describe("SQL preview environment selector", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    // Persisted webview state leaks across mounts (saveState/restoreState),
+    // so clear it too to keep the tests order-independent.
+    const vscode = await getVscode();
+    Object.keys(vscode.__storage).forEach((key) => delete vscode.__storage[key]);
+  });
 
   it("lists the available environments plus a follow-default option", async () => {
     const wrapper = mountPreview();
