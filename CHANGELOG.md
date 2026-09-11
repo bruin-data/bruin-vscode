@@ -1,4 +1,7 @@
 # Changelog
+## [0.84.5]
+- Fixed unreadable header text when sorting a column in the query preview.
+
 ## [0.84.4]
 - Added an environment selector to the SQL query preview toolbar, so you can preview queries against a different environment without changing the default in `.bruin.yml`. The choice is pinned for the session; pick "Follow asset panel" to track the asset panel's environment again.
 

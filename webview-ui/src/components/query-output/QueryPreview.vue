@@ -2107,11 +2107,11 @@ thead th::after {
 /* Sorting Styles */
 .sort-active {
   background-color: var(--vscode-input-background) !important;
-  color: var(--vscode-button-foreground) !important;
+  color: var(--vscode-input-foreground) !important;
 }
 
 .sort-active .codicon {
-  color: var(--vscode-button-background);
+  color: var(--vscode-focusBorder);
 }
 
 .sort-tooltip {
