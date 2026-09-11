@@ -2111,7 +2111,7 @@ thead th::after {
 }
 
 .sort-active .codicon {
-  color: var(--vscode-focusBorder);
+  color: var(--vscode-input-foreground);
 }
 
 .sort-tooltip {
