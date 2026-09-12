@@ -5254,6 +5254,9 @@
                 "private_key": {
                     "type": "string"
                 },
+                "read_only": {
+                    "type": "boolean"
+                },
                 "token": {
                     "type": "string"
                 }
