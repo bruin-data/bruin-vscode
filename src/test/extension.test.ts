@@ -66,6 +66,7 @@ import { BruinInternalParse } from "../bruin/bruinInternalParse";
 import { BruinEnvList } from "../bruin/bruinSelectEnv";
 import {  installOrUpdateCli } from "../extension/commands/updateBruinCLI";
 import { getLanguageDelimiters } from "../utilities/delimiters";
+import { extractTableDiffError } from "../utilities/tableDiffError";
 import { bruinDelimiterRegex } from "../constants";
 import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvider";
 import { BruinQueryOutput } from "../bruin/queryOutput";
@@ -7629,6 +7630,35 @@ parameters:
 });
 
 suite("Utility Functions Tests", () => {
+  suite("extractTableDiffError", () => {
+    test("extracts the message from a data-diff JSON error blob", () => {
+      const raw =
+        '{"error":"error comparing tables \'a\' and \'b\': cannot assign int64 to **float64"}';
+      assert.strictEqual(
+        extractTableDiffError(raw),
+        "error comparing tables 'a' and 'b': cannot assign int64 to **float64"
+      );
+    });
+
+    test("handles surrounding whitespace", () => {
+      assert.strictEqual(extractTableDiffError('\n  {"error":"boom"}\n'), "boom");
+    });
+
+    test("returns null for plain (non-JSON) error text", () => {
+      assert.strictEqual(extractTableDiffError("connection refused"), null);
+    });
+
+    test("returns null for a successful diff payload", () => {
+      assert.strictEqual(extractTableDiffError('{"summary":{"rowCount":{}}}'), null);
+    });
+
+    test("returns null for empty or malformed JSON", () => {
+      assert.strictEqual(extractTableDiffError(""), null);
+      assert.strictEqual(extractTableDiffError('{"error":'), null);
+      assert.strictEqual(extractTableDiffError('{"error":""}'), null);
+    });
+  });
+
   suite("commandExists", () => {
     let execStub: sinon.SinonStub;
     let commandExistsFunc: typeof bruinUtils.commandExists;
