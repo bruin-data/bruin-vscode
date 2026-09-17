@@ -10,25 +10,16 @@ import { until } from "selenium-webdriver";
 import "mocha";
 import * as path from "path";
 import { TestCoordinator } from "./test-coordinator";
-
-// Helper function to handle click interception issues and stale element references
-const safeClick = async (driver: WebDriver, element: any) => {
-  try {
-    // Wait until the element is visible and then click it
-    await driver.wait(until.elementIsVisible(element), 10000, "Timed out waiting for element to be visible before click.");
-    await element.click();
-  } catch (error: any) {
-    if (error.name === 'ElementClickInterceptedError') {
-      console.log("Click intercepted, using JavaScript click as fallback");
-      await driver.executeScript("arguments[0].click();", element);
-    } else if (error.name === 'StaleElementReferenceError') {
-      console.log("Stale element reference, element may have changed");
-      throw new Error("Element became stale - need to re-find element before clicking");
-    } else {
-      throw error;
-    }
-  }
-};
+import {
+  clickReliably,
+  findElementReliably,
+  findElementsReliably,
+  waitFor,
+  waitForLoadingToComplete,
+  waitForVueApp,
+  sleep,
+  cleanupEditors,
+} from "./test-utils";
 
 describe("Query Preview Integration Tests", function () {
   let webview: WebView | undefined;
@@ -50,8 +41,7 @@ describe("Query Preview Integration Tests", function () {
     testQueryFilePath = path.join(testWorkspacePath, "assets", "example.sql");
     
     try {
-      // Close all editors first
-      await workbench.executeCommand("workbench.action.closeAllEditors");
+      await cleanupEditors(workbench);
     } catch (error) {
       console.log("Could not close all editors, continuing...");
     }
@@ -61,92 +51,107 @@ describe("Query Preview Integration Tests", function () {
       // First, properly open the test-pipeline folder as a VSCode workspace
       await VSBrowser.instance.openResources(testWorkspacePath);
       console.log("✓ Opened test-pipeline folder as workspace");
-      
-      // Wait for workspace to be fully established
-      await driver.sleep(3000);
-      console.log("✓ Workspace context established");
-      
+
       // Open the .bruin.yml file to establish connection context
       const testBruinConfigPath = path.join(testWorkspacePath, ".bruin.yml");
       await VSBrowser.instance.openResources(testBruinConfigPath);
       console.log("✓ Opened .bruin.yml to establish connection context");
-      
-      // Wait for connection context to be established
-      await driver.sleep(1500);
-      
+
+      // Wait for the file to actually appear in the editor (proves workspace is ready)
+      await waitFor(
+        async () => {
+          const editorView = workbench.getEditorView();
+          const titles = await editorView.getOpenEditorTitles();
+          return titles.some((t) => t.includes(".bruin.yml")) ? true : null;
+        },
+        { timeout: 15000, message: "Editor did not open .bruin.yml" }
+      );
+      console.log("✓ Workspace context established");
+
       // Next, open the pipeline.yml file to establish workspace context
       const testPipelineFilePath = path.join(testWorkspacePath, "pipeline.yml");
       await VSBrowser.instance.openResources(testPipelineFilePath);
       console.log("✓ Opened pipeline.yml to establish workspace context");
-      
-      // Wait for workspace context to be established
-      await driver.sleep(1500);
-      
+
+      // Wait for pipeline.yml to be open
+      await waitFor(
+        async () => {
+          const editorView = workbench.getEditorView();
+          const titles = await editorView.getOpenEditorTitles();
+          return titles.some((t) => t.includes("pipeline.yml")) ? true : null;
+        },
+        { timeout: 10000, message: "Editor did not open pipeline.yml" }
+      );
+
       // Now open the SQL file for query preview
       await VSBrowser.instance.openResources(testQueryFilePath);
       console.log("✓ Opened example.sql");
 
-      // Wait a bit more to ensure workspace is recognized
-      await driver.sleep(2000);
+      // Wait for SQL file to be open
+      await waitFor(
+        async () => {
+          const editorView = workbench.getEditorView();
+          const titles = await editorView.getOpenEditorTitles();
+          return titles.some((t) => t.includes("example.sql")) ? true : null;
+        },
+        { timeout: 10000, message: "Editor did not open example.sql" }
+      );
 
       // Now, explicitly focus the query preview panel to ensure it opens
       await workbench.executeCommand("bruin.QueryPreviewView.focus");
       console.log("✓ Executed 'bruin.QueryPreviewView.focus' command");
       
       webview = new WebView();
-      // Wait for a reasonable amount of time for the webview to appear in the DOM
-      await driver.wait(async () => {
-        try {
-            await webview?.wait(200); // Check for webview's existence without long wait
+
+      // Wait for webview to be present in the DOM
+      await waitFor(
+        async () => {
+          try {
+            await webview?.wait(200);
             return true;
-        } catch (e) {
-            return false;
-        }
-      }, 5000, "Timed out waiting for the webview to be present in the DOM.");
-      
+          } catch {
+            return null;
+          }
+        },
+        { timeout: 10000, message: "Webview not present in DOM" }
+      );
+
       await webview.switchToFrame();
       console.log("✓ Switched to webview context");
 
-      // Wait for the query preview panel iframe to appear
+      // Wait for and switch to the query preview panel iframe
       console.log("🔍 Looking for query preview panel iframe...");
-      const queryPreviewIframe = await driver.wait(
-        until.elementLocated(By.css('iframe[src*="extensionId=bruin.bruin"]')),
-        10000,
-        "Timed out waiting for query preview panel iframe"
+      const queryPreviewIframe = await findElementReliably(
+        driver,
+        By.css('iframe[src*="extensionId=bruin.bruin"]'),
+        { timeout: 15000, message: "Query preview panel iframe not found" }
       );
       console.log("✓ Found query preview panel iframe");
 
-      // Switch to the query preview panel iframe
       await driver.switchTo().frame(queryPreviewIframe);
       console.log("✓ Switched to query preview panel iframe context");
 
-      // Wait for the actual content iframe (the one that loads our HTML)
+      // Wait for and switch to the content iframe
       console.log("🔍 Looking for content iframe...");
-      const contentIframe = await driver.wait(
-        until.elementLocated(By.css('iframe[src*="fake.html"]')),
-        10000,
-        "Timed out waiting for content iframe"
+      const contentIframe = await findElementReliably(
+        driver,
+        By.css('iframe[src*="fake.html"]'),
+        { timeout: 15000, message: "Content iframe not found" }
       );
       console.log("✓ Found content iframe");
 
-      // Switch to the content iframe
       await driver.switchTo().frame(contentIframe);
       console.log("✓ Switched to content iframe context");
 
       // Wait for Vue app to be mounted and ready
-      await driver.wait(
-        until.elementLocated(By.css("#app")),
-        10000,
-        "Timed out waiting for Vue app"
-      );
+      await waitForVueApp(driver, { timeout: 15000 });
       console.log("✓ Vue app loaded");
 
       // Wait for query preview component to be ready
-      await driver.wait(
-        until.elementLocated(By.css('.codicon-play')),
-        10000,
-        "Timed out waiting for query preview UI"
-      );
+      await findElementReliably(driver, By.css(".codicon-play"), {
+        timeout: 15000,
+        message: "Query preview UI not ready",
+      });
       console.log("✓ Query preview UI ready");
 
     } catch (error) {
@@ -270,8 +275,8 @@ describe("Query Preview Integration Tests", function () {
         console.log(`Found ${addTabButtons.length} add buttons`);
         
         if (addTabButtons.length > 0) {
-          await safeClick(driver, addTabButtons[0]);
-          await driver.sleep(500);
+          await clickReliably(driver, addTabButtons[0]);
+          await sleep(300);
           console.log("✓ Clicked add tab button");
 
           // Check if new tab was created
@@ -302,8 +307,8 @@ describe("Query Preview Integration Tests", function () {
 
         if (tabButtons.length > 1) {
           // Click on the second tab if available
-          await safeClick(driver, tabButtons[1]);
-          await driver.sleep(300);
+          await clickReliably(driver, tabButtons[1]);
+          await sleep(300);
           console.log("✓ Switched to second tab");
 
           // Verify tab switch by checking active state
@@ -338,15 +343,15 @@ describe("Query Preview Integration Tests", function () {
           if (tabButtons.length > 1) {
             // Hover over the last tab to potentially show close button
             await driver.executeScript("arguments[0].dispatchEvent(new MouseEvent('mouseover', {bubbles: true}));", tabButtons[tabButtons.length - 1]);
-            await driver.sleep(200);
+            await sleep(200);
 
             // Look for close buttons again after hover
             const closeButtonsAfterHover = await driver.findElements(By.css('.codicon-close'));
             console.log(`Found ${closeButtonsAfterHover.length} close buttons after hover`);
 
             if (closeButtonsAfterHover.length > 0) {
-              await safeClick(driver, closeButtonsAfterHover[0]);
-              await driver.sleep(300);
+              await clickReliably(driver, closeButtonsAfterHover[0]);
+              await sleep(300);
               console.log("✓ Clicked close button");
             }
           }
@@ -377,7 +382,7 @@ describe("Query Preview Integration Tests", function () {
             const event = new MouseEvent('dblclick', {bubbles: true});
             arguments[0].dispatchEvent(event);
           `, tabButtons[0]);
-          await driver.sleep(300);
+          await sleep(300);
 
           // Look for input field that might appear for editing
           const editInputs = await driver.findElements(By.css('input[class*="edit"], input[type="text"]'));
@@ -395,7 +400,7 @@ describe("Query Preview Integration Tests", function () {
               const event = new KeyboardEvent('keyup', {key: 'Enter', bubbles: true});
               arguments[0].dispatchEvent(event);
             `, editInputs[0]);
-            await driver.sleep(200);
+            await sleep(200);
             
             console.log("✓ Tab label edit completed");
           }
@@ -431,7 +436,7 @@ describe("Query Preview Integration Tests", function () {
           // Set new limit
           await limitInput.clear();
           await limitInput.sendKeys("50");
-          await driver.sleep(200);
+          await sleep(200);
 
           const newValue = await limitInput.getAttribute("value");
           console.log(`New limit value: ${newValue}`);
@@ -469,7 +474,7 @@ describe("Query Preview Integration Tests", function () {
 
         if (runButtons.length > 0) {
           // Click the run button
-          await safeClick(driver, runButtons[0]);
+          await clickReliably(driver, runButtons[0]);
           console.log("✓ Clicked run button");
 
           // Wait for loading state to appear or error to show immediately
@@ -506,7 +511,7 @@ describe("Query Preview Integration Tests", function () {
           }
 
           // Check final state regardless with extended wait for workspace initialization
-          await driver.sleep(2000); // Longer wait to let workspace context settle
+          await sleep(2000); // Longer wait to let workspace context settle
           const finalTableElements = await driver.findElements(By.css('table, .table'));
           const finalErrorElements = await driver.findElements(By.css('.text-errorForeground, [class*="error"]'));
           
@@ -554,7 +559,7 @@ describe("Query Preview Integration Tests", function () {
         // First trigger a query to get cancel button to appear
         const runButtons = await driver.findElements(By.css('vscode-button[title="Run Query"], .codicon-play'));
         if (runButtons.length > 0) {
-          await safeClick(driver, runButtons[0]);
+          await clickReliably(driver, runButtons[0]);
           console.log("✓ Started query execution");
 
           // Wait for cancel button to appear (query is running)
@@ -576,8 +581,8 @@ describe("Query Preview Integration Tests", function () {
                 console.log(`Cancel button click attempt ${attempt}/3`);
                 const freshCancelButtons = await driver.findElements(By.css('vscode-button[title="Cancel Query"], .codicon-stop-circle'));
                 if (freshCancelButtons.length > 0) {
-                  await safeClick(driver, freshCancelButtons[0]);
-                  await driver.sleep(500);
+                  await clickReliably(driver, freshCancelButtons[0]);
+                  await sleep(500);
                   console.log("✓ Cancel button clicked");
                   cancelClicked = true;
                   break;
@@ -587,7 +592,7 @@ describe("Query Preview Integration Tests", function () {
               } catch (error: any) {
                 if (error.message.includes("stale") || error.name === 'StaleElementReferenceError') {
                   console.log(`Stale element on attempt ${attempt}, retrying...`);
-                  await driver.sleep(200);
+                  await sleep(200);
                   continue;
                 } else {
                   throw error;
@@ -629,7 +634,7 @@ describe("Query Preview Integration Tests", function () {
         // First ensure we have a query executed
         const runButtons = await driver.findElements(By.css('vscode-button[title="Run Query"], .codicon-play'));
         if (runButtons.length > 0) {
-          await safeClick(driver, runButtons[0]);
+          await clickReliably(driver, runButtons[0]);
           console.log("✓ Triggered query for results testing");
 
           // Wait for query to complete with extended timeout for DuckDB connection
@@ -720,8 +725,8 @@ describe("Query Preview Integration Tests", function () {
           console.log("Search already open, closing first...");
           const closeButtons = await driver.findElements(By.css('.codicon-close'));
           if (closeButtons.length > 0) {
-            await safeClick(driver, closeButtons[closeButtons.length - 1]); // Get last close button (likely the search close)
-            await driver.sleep(300);
+            await clickReliably(driver, closeButtons[closeButtons.length - 1]); // Get last close button (likely the search close)
+            await sleep(300);
           }
         }
 
@@ -744,8 +749,8 @@ describe("Query Preview Integration Tests", function () {
         }
 
         if (searchButtons.length > 0) {
-          await safeClick(driver, searchButtons[0]);
-          await driver.sleep(500);
+          await clickReliably(driver, searchButtons[0]);
+          await sleep(500);
           console.log("✓ Clicked search button");
 
           // Wait for search input to appear with more specific selectors
@@ -797,7 +802,7 @@ describe("Query Preview Integration Tests", function () {
             });
             document.dispatchEvent(event);
           `);
-          await driver.sleep(300);
+          await sleep(300);
         }
 
         // Send Ctrl+F keyboard shortcut
@@ -810,7 +815,7 @@ describe("Query Preview Integration Tests", function () {
           document.dispatchEvent(event);
         `);
         
-        await driver.sleep(500);
+        await sleep(500);
 
         // Wait for search input to appear with more specific selector
         try {
@@ -853,7 +858,7 @@ describe("Query Preview Integration Tests", function () {
         // First ensure we have executed a query and have results
         const runButtons = await driver.findElements(By.css('vscode-button[title="Run Query"], .codicon-play'));
         if (runButtons.length > 0) {
-          await safeClick(driver, runButtons[0]);
+          await clickReliably(driver, runButtons[0]);
           console.log("✓ Triggered query for search testing");
 
           // Wait for query to complete
@@ -876,8 +881,8 @@ describe("Query Preview Integration Tests", function () {
           const searchButtons = await driver.findElements(By.css('vscode-button[title="Search (Ctrl+F)"], .codicon-search'));
           console.log(`Found ${searchButtons.length} search buttons`);
           if (searchButtons.length > 0) {
-            await safeClick(driver, searchButtons[0]);
-            await driver.sleep(500); // Increased wait time
+            await clickReliably(driver, searchButtons[0]);
+            await sleep(500); // Increased wait time
             console.log("✓ Clicked search button");
           } else {
             console.log("! No search button found, cannot test search filtering");
@@ -897,7 +902,7 @@ describe("Query Preview Integration Tests", function () {
             // Enter a search term
             await searchInputs[0].clear();
             await searchInputs[0].sendKeys("test");
-            await driver.sleep(1000); // Allow time for filtering
+            await sleep(1000); // Allow time for filtering
 
             // Check if results are filtered
             const filteredRows = await driver.findElements(By.css('tbody tr'));
@@ -907,7 +912,7 @@ describe("Query Preview Integration Tests", function () {
 
             // Clear search to reset
             await searchInputs[0].clear();
-            await driver.sleep(500);
+            await sleep(500);
             console.log("✓ Search cleared");
           }
         } else {
@@ -945,8 +950,8 @@ describe("Query Preview Integration Tests", function () {
         }
 
         if (queryToggleButtons.length > 0) {
-          await safeClick(driver, queryToggleButtons[0]);
-          await driver.sleep(500);
+          await clickReliably(driver, queryToggleButtons[0]);
+          await sleep(500);
           console.log("✓ Clicked query toggle button");
 
           // Look for query panel or query content that might appear
@@ -957,8 +962,8 @@ describe("Query Preview Integration Tests", function () {
           console.log(`Found ${queryContent.length} query content elements`);
           
           // Toggle again to test hiding
-          await safeClick(driver, queryToggleButtons[0]);
-          await driver.sleep(300);
+          await clickReliably(driver, queryToggleButtons[0]);
+          await sleep(300);
           console.log("✓ Toggled query visibility again");
         } else {
           console.log("! No query toggle button found");
@@ -982,7 +987,7 @@ describe("Query Preview Integration Tests", function () {
         // First execute a query to have results to clear
         const runButtons = await driver.findElements(By.css('vscode-button[title="Run Query"], .codicon-play'));
         if (runButtons.length > 0) {
-          await safeClick(driver, runButtons[0]);
+          await clickReliably(driver, runButtons[0]);
           console.log("✓ Executed query to have results to clear");
 
           // Wait for query to complete
@@ -1011,8 +1016,8 @@ describe("Query Preview Integration Tests", function () {
         }
 
         if (clearButtons.length > 0) {
-          await safeClick(driver, clearButtons[0]);
-          await driver.sleep(500);
+          await clickReliably(driver, clearButtons[0]);
+          await sleep(500);
           console.log("✓ Clicked clear button");
 
           // Check if results are cleared (tables should be gone or empty)
@@ -1049,7 +1054,7 @@ describe("Query Preview Integration Tests", function () {
         // First ensure we have results to export
         const runButtons = await driver.findElements(By.css('vscode-button[title="Run Query"], .codicon-play'));
         if (runButtons.length > 0) {
-          await safeClick(driver, runButtons[0]);
+          await clickReliably(driver, runButtons[0]);
           console.log("✓ Executed query to have results to export");
 
           // Wait for query to complete
@@ -1078,8 +1083,8 @@ describe("Query Preview Integration Tests", function () {
         }
 
         if (exportButtons.length > 0) {
-          await safeClick(driver, exportButtons[0]);
-          await driver.sleep(1000);
+          await clickReliably(driver, exportButtons[0]);
+          await sleep(1000);
           console.log("✓ Clicked export button");
 
           // Look for export feedback (spinner, notification, or loading state)
@@ -1092,7 +1097,7 @@ describe("Query Preview Integration Tests", function () {
           console.log(`Found ${exportLoadingStates.length} export-related text elements`);
 
           // Wait a bit longer to see if notification appears
-          await driver.sleep(2000);
+          await sleep(2000);
           const finalNotifications = await driver.findElements(By.css('[class*="notification"], .fixed.bottom-4.right-4'));
           console.log(`Found ${finalNotifications.length} final notifications`);
 
@@ -1133,8 +1138,8 @@ describe("Query Preview Integration Tests", function () {
           // First modify some state (add a tab or change limit)
           const addTabButtons = await driver.findElements(By.css('vscode-button[title="Add Tab"], .codicon-add'));
           if (addTabButtons.length > 0) {
-            await safeClick(driver, addTabButtons[0]);
-            await driver.sleep(300);
+            await clickReliably(driver, addTabButtons[0]);
+            await sleep(300);
             console.log("✓ Added a tab to test reset");
           }
 
@@ -1146,8 +1151,8 @@ describe("Query Preview Integration Tests", function () {
           }
 
           // Now test reset
-          await safeClick(driver, resetButtons[0]);
-          await driver.sleep(1000);
+          await clickReliably(driver, resetButtons[0]);
+          await sleep(1000);
           console.log("✓ Clicked reset button");
 
           // Check if panel is reset to default state
@@ -1188,8 +1193,8 @@ describe("Query Preview Integration Tests", function () {
         console.log(`Found ${expandButtons.length} cell expand buttons`);
 
         if (expandButtons.length > 0) {
-          await safeClick(driver, expandButtons[0]);
-          await driver.sleep(300);
+          await clickReliably(driver, expandButtons[0]);
+          await sleep(300);
           console.log("✓ Clicked cell expand button");
 
           // Look for expanded content
@@ -1247,7 +1252,7 @@ describe("Query Preview Integration Tests", function () {
           });
           document.dispatchEvent(event);
         `);
-        await driver.sleep(300);
+        await sleep(300);
         console.log("✓ Tested Ctrl+Enter shortcut");
 
         // Test Escape to close expanded cells
@@ -1258,7 +1263,7 @@ describe("Query Preview Integration Tests", function () {
           });
           document.dispatchEvent(event);
         `);
-        await driver.sleep(200);
+        await sleep(200);
         console.log("✓ Tested Escape shortcut");
 
         console.log("✓ Keyboard shortcuts tested");
@@ -1281,8 +1286,8 @@ describe("Query Preview Integration Tests", function () {
         // Create a new tab and switch to it
         const addTabButtons = await driver.findElements(By.css('.codicon-add'));
         if (addTabButtons.length > 0) {
-          await safeClick(driver, addTabButtons[0]);
-          await driver.sleep(300);
+          await clickReliably(driver, addTabButtons[0]);
+          await sleep(300);
         }
 
         // Set a custom limit
@@ -1290,14 +1295,14 @@ describe("Query Preview Integration Tests", function () {
         if (limitInputs.length > 0) {
           await limitInputs[0].clear();
           await limitInputs[0].sendKeys("25");
-          await driver.sleep(300);
+          await sleep(300);
         }
 
         // Switch back to first tab
         const tabButtons = await driver.findElements(By.css('button[class*="tab"]:not(:has(.codicon-add))'));
         if (tabButtons.length > 1) {
-          await safeClick(driver, tabButtons[0]);
-          await driver.sleep(300);
+          await clickReliably(driver, tabButtons[0]);
+          await sleep(300);
         }
 
         console.log("✓ State management operations completed");

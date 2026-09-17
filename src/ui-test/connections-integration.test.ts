@@ -10,8 +10,14 @@ import { until } from "selenium-webdriver";
 import "mocha";
 import * as path from "path";
 import { TestCoordinator } from "./test-coordinator";
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+import {
+  clickReliably,
+  findElementReliably,
+  waitFor,
+  waitForVueApp,
+  sleep,
+  cleanupEditors,
+} from "./test-utils";
 
 
 describe("Webview Components Integration Tests", function () {

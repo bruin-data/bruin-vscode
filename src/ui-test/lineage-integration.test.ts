@@ -10,22 +10,15 @@ import { until } from "selenium-webdriver";
 import "mocha";
 import * as path from "path";
 import { TestCoordinator } from "./test-coordinator";
-
-// Helper function to handle click interception issues
-const safeClick = async (driver: WebDriver, element: any) => {
-  try {
-    // Wait until the element is visible and then click it
-    await driver.wait(until.elementIsVisible(element), 10000, "Timed out waiting for element to be visible before click.");
-    await element.click();
-  } catch (error: any) {
-    if (error.name === 'ElementClickInterceptedError') {
-      console.log("Click intercepted, using JavaScript click as fallback");
-      await driver.executeScript("arguments[0].click();", element);
-    } else {
-      throw error;
-    }
-  }
-};
+import {
+  clickReliably,
+  findElementReliably,
+  waitFor,
+  waitForLoadingToComplete,
+  waitForVueApp,
+  sleep,
+  cleanupEditors,
+} from "./test-utils";
 
 describe("Lineage Panel Integration Tests", function () {
   let webview: WebView | undefined;
@@ -47,8 +40,7 @@ describe("Lineage Panel Integration Tests", function () {
     testAssetFilePath = path.join(testWorkspacePath, "assets", "example.sql");
     
     try {
-      // Close all editors first
-      await workbench.executeCommand("workbench.action.closeAllEditors");
+      await cleanupEditors(workbench);
     } catch (error) {
       console.log("Could not close all editors, continuing...");
     }
@@ -61,44 +53,46 @@ describe("Lineage Panel Integration Tests", function () {
       // Now, explicitly focus the lineage panel to ensure it opens
       await workbench.executeCommand("bruin.assetLineageView.focus");
       console.log("✓ Executed 'bruin.assetLineageView.focus' command");
-      
+
       webview = new WebView();
-      // Wait for a reasonable amount of time for the webview to appear in the DOM
-      await driver.wait(async () => {
-        try {
-            await webview?.wait(200); // Check for webview's existence without long wait
+
+      // Wait for webview to be present in the DOM
+      await waitFor(
+        async () => {
+          try {
+            await webview?.wait(200);
             return true;
-        } catch (e) {
-            return false;
-        }
-      }, 5000, "Timed out waiting for the webview to be present in the DOM.");
-      
+          } catch {
+            return null;
+          }
+        },
+        { timeout: 10000, message: "Webview not present in DOM" }
+      );
+
       await webview.switchToFrame();
       console.log("✓ Switched to webview context");
 
-      // Wait for the lineage panel iframe to appear
+      // Wait for and switch to the lineage panel iframe
       console.log("🔍 Looking for lineage panel iframe...");
-      const lineageIframe = await driver.wait(
-        until.elementLocated(By.css('iframe[src*="extensionId=bruin.bruin"]')),
-        10000,
-        "Timed out waiting for lineage panel iframe"
+      const lineageIframe = await findElementReliably(
+        driver,
+        By.css('iframe[src*="extensionId=bruin.bruin"]'),
+        { timeout: 15000, message: "Lineage panel iframe not found" }
       );
       console.log("✓ Found lineage panel iframe");
 
-      // Switch to the lineage panel iframe
       await driver.switchTo().frame(lineageIframe);
       console.log("✓ Switched to lineage panel iframe context");
 
-      // Wait for the actual content iframe (the one that loads our HTML)
+      // Wait for and switch to the content iframe
       console.log("🔍 Looking for content iframe...");
-      const contentIframe = await driver.wait(
-        until.elementLocated(By.css('iframe[src*="fake.html"]')),
-        10000,
-        "Timed out waiting for content iframe"
+      const contentIframe = await findElementReliably(
+        driver,
+        By.css('iframe[src*="fake.html"]'),
+        { timeout: 15000, message: "Content iframe not found" }
       );
       console.log("✓ Found content iframe");
 
-      // Switch to the content iframe
       await driver.switchTo().frame(contentIframe);
       console.log("✓ Switched to content iframe context");
 
@@ -285,7 +279,7 @@ describe("Lineage Panel Integration Tests", function () {
         console.log("✓ Clicked zoom in button via JavaScript");
         
         // Wait for zoom animation to complete
-        await driver.sleep(500);
+        await sleep(500);
         
         // Verify zoom controls are still present (indicating VueFlow is working)
         const zoomControls = await driver.findElements(By.css(".vue-flow__controls"));
@@ -324,7 +318,7 @@ describe("Lineage Panel Integration Tests", function () {
         assert(await zoomOutButton.isDisplayed(), "Zoom out button should be visible");
         
         // Click the zoom out button
-        await safeClick(driver, zoomOutButton);
+        await clickReliably(driver, zoomOutButton);
         console.log("✓ Clicked zoom out button");
         
         // Verify the zoom level changed
@@ -359,11 +353,11 @@ describe("Lineage Panel Integration Tests", function () {
         console.log("Initial transform:", initialTransform);
         
         // Click the fit view button
-        await safeClick(driver, fitViewButton);
+        await clickReliably(driver, fitViewButton);
         console.log("✓ Clicked fit view button");
         
         // Wait a moment for animation to complete
-        await driver.sleep(500);
+        await sleep(500);
         
         // Get updated transform
         const updatedTransform = await transformPane.getAttribute("style");
@@ -397,11 +391,11 @@ describe("Lineage Panel Integration Tests", function () {
         console.log("Initial pane classes:", initialClasses);
         
         // Click the interactive button to toggle
-        await safeClick(driver, interactiveButton);
+        await clickReliably(driver, interactiveButton);
         console.log("✓ Clicked interactive toggle button");
         
         // Wait a moment for changes to apply
-        await driver.sleep(200);
+        await sleep(200);
         
         // Check if classes changed
         const updatedClasses = await flowPane.getAttribute("class");
@@ -434,11 +428,11 @@ describe("Lineage Panel Integration Tests", function () {
         assert(triggerText.includes("Direct Dependencies"), "Should show current filter type");
         
         // Click the filter trigger
-        await safeClick(driver, filterTrigger);
+        await clickReliably(driver, filterTrigger);
         console.log("✓ Clicked filter trigger");
         
         // Wait a moment to see if any dropdown or panel appears
-        await driver.sleep(500);
+        await sleep(500);
         
         // Check if the filter trigger still exists (it might disappear/reappear with filter panel)
         const triggerElements = await driver.findElements(By.css("#filter-tab-trigger"));
@@ -547,24 +541,24 @@ describe("Lineage Panel Integration Tests", function () {
         
         // Zoom in twice
         await driver.executeScript(`document.querySelector('.vue-flow__controls-zoomin').click()`);
-        await driver.sleep(300);
+        await sleep(300);
         const afterFirstZoomIn = await getTransform();
         console.log("After first zoom in:", afterFirstZoomIn);
         
         await driver.executeScript(`document.querySelector('.vue-flow__controls-zoomin').click()`);
-        await driver.sleep(300);
+        await sleep(300);
         const afterSecondZoomIn = await getTransform();
         console.log("After second zoom in:", afterSecondZoomIn);
         
         // Zoom out once
         await driver.executeScript(`document.querySelector('.vue-flow__controls-zoomout').click()`);
-        await driver.sleep(300);
+        await sleep(300);
         const afterZoomOut = await getTransform();
         console.log("After zoom out:", afterZoomOut);
         
         // Fit view to reset
         await driver.executeScript(`document.querySelector('.vue-flow__controls-fitview').click()`);
-        await driver.sleep(500);
+        await sleep(500);
         const afterFitView = await getTransform();
         console.log("After fit view:", afterFitView);
         
@@ -685,7 +679,7 @@ describe("Lineage Panel Integration Tests", function () {
         console.log("Testing rapid control interactions...");
         for (let i = 0; i < 3; i++) {
           await driver.executeScript(`document.querySelector('.vue-flow__controls-zoomin').click()`);
-          await driver.sleep(50); // Very short delay
+          await sleep(50); // Very short delay
         }
         
         // Verify controls are still functional after rapid clicking
@@ -694,7 +688,7 @@ describe("Lineage Panel Integration Tests", function () {
         
         // Test that the interface is still responsive
         await driver.executeScript(`document.querySelector('.vue-flow__controls-fitview').click()`);
-        await driver.sleep(300);
+        await sleep(300);
         
         const transformPane = await driver.findElement(By.css(".vue-flow__transformationpane"));
         const finalTransform = await transformPane.getAttribute("style");
@@ -731,8 +725,8 @@ describe("Lineage Panel Integration Tests", function () {
           // Panel is collapsed, need to expand it
           console.log("Filter panel is collapsed, expanding...");
           const filterTrigger = await driver.findElement(By.css("#filter-tab-trigger"));
-          await safeClick(driver, filterTrigger);
-          await driver.sleep(1000); // Wait for panel to expand
+          await clickReliably(driver, filterTrigger);
+          await sleep(1000); // Wait for panel to expand
           radioGroup = await driver.findElement(By.css("vscode-radio-group"));
         }
         
@@ -781,8 +775,8 @@ describe("Lineage Panel Integration Tests", function () {
             
             if (text.includes("All Dependencies") && isDisplayed && isEnabled) {
               console.log("Attempting to click 'All Dependencies' option...");
-              await safeClick(driver, radioButton);
-              await driver.sleep(500);
+              await clickReliably(driver, radioButton);
+              await sleep(500);
               
               // Check if filter state changed by looking at trigger text
               const triggerElements = await driver.findElements(By.css("#filter-tab-trigger"));
@@ -879,8 +873,8 @@ describe("Lineage Panel Integration Tests", function () {
         let filterTrigger = await driver.findElements(By.css("#filter-tab-trigger"));
         if (filterTrigger.length > 0) {
           console.log("Clicking filter trigger to ensure panel is expanded...");
-          await safeClick(driver, filterTrigger[0]);
-          await driver.sleep(500); // Allow panel to expand
+          await clickReliably(driver, filterTrigger[0]);
+          await sleep(500); // Allow panel to expand
         }
         
         // Get current filter state before any interactions (re-find element to avoid stale reference)
@@ -929,7 +923,7 @@ describe("Lineage Panel Integration Tests", function () {
                   
                   // Use JavaScript click to avoid stale element issues
                   await driver.executeScript("arguments[0].click();", element);
-                  await driver.sleep(1000); // Wait for state change
+                  await sleep(1000); // Wait for state change
                   
                   fullPipelineFound = true;
                   
@@ -1003,7 +997,7 @@ describe("Lineage Panel Integration Tests", function () {
           } catch (e: any) {
             console.log(`Search attempt ${searchAttempts} failed:`, e.message);
             if (searchAttempts < maxAttempts) {
-              await driver.sleep(1000); // Wait before retry
+              await sleep(1000); // Wait before retry
             }
           }
         }
@@ -1060,7 +1054,7 @@ describe("Lineage Panel Integration Tests", function () {
           
           // Try to hover over the node
           await driver.executeScript("arguments[0].dispatchEvent(new MouseEvent('mouseover', {bubbles: true}));", firstNode);
-          await driver.sleep(200);
+          await sleep(200);
           
           console.log("✓ Node hover interaction tested");
         }
@@ -1103,7 +1097,7 @@ describe("Lineage Panel Integration Tests", function () {
         
         // Test if container can receive focus
         await driver.executeScript("arguments[0].focus();", flowContainer);
-        await driver.sleep(200);
+        await sleep(200);
         
         // Test keyboard shortcuts (common VueFlow shortcuts)
         const shortcuts = [
@@ -1121,7 +1115,7 @@ describe("Lineage Panel Integration Tests", function () {
                 bubbles: true
               }));
             `, flowContainer);
-            await driver.sleep(300);
+            await sleep(300);
             
             console.log(`✓ ${shortcut.description} shortcut tested`);
           } catch (e: any) {
@@ -1137,7 +1131,7 @@ describe("Lineage Panel Integration Tests", function () {
             bubbles: true
           }));
         `, flowContainer);
-        await driver.sleep(200);
+        await sleep(200);
         
         console.log("✓ Tab navigation tested");
         
@@ -1149,7 +1143,7 @@ describe("Lineage Panel Integration Tests", function () {
             bubbles: true
           }));
         `, flowContainer);
-        await driver.sleep(200);
+        await sleep(200);
         
         console.log("✓ Escape key tested");
         console.log("✓ Keyboard navigation testing completed");
@@ -1207,7 +1201,7 @@ describe("Lineage Panel Integration Tests", function () {
           }));
         `, flowPane, centerX, centerY);
         
-        await driver.sleep(500);
+        await sleep(500);
         console.log("✓ Pane drag simulation completed");
         
         // Look for nodes to test node dragging
@@ -1248,7 +1242,7 @@ describe("Lineage Panel Integration Tests", function () {
             }));
           `, firstNode, nodeX, nodeY);
           
-          await driver.sleep(300);
+          await sleep(300);
           console.log("✓ Node drag simulation completed");
         } else {
           console.log("! No nodes found for drag testing");
@@ -1301,7 +1295,7 @@ describe("Lineage Panel Integration Tests", function () {
               }));
             `, minimap, minimapCenterX, minimapCenterY);
             
-            await driver.sleep(300);
+            await sleep(300);
             console.log("✓ Minimap click interaction tested");
           }
         } else {
@@ -1325,7 +1319,7 @@ describe("Lineage Panel Integration Tests", function () {
         
         // Wait for VueFlow to fully render
         await driver.wait(until.elementLocated(By.css(".vue-flow")), 5000);
-        await driver.sleep(1000); // Additional wait for rendering
+        await sleep(1000); // Additional wait for rendering
         
         // Look for selectable elements
         const nodeElements = await driver.findElements(By.css(".vue-flow__node"));
@@ -1350,7 +1344,7 @@ describe("Lineage Panel Integration Tests", function () {
               }));
             `, firstNode, nodeRect.x + nodeRect.width / 2, nodeRect.y + nodeRect.height / 2);
             
-            await driver.sleep(200);
+            await sleep(200);
             
             // Check if node is selected (look for selected class)
             const nodeClass = await firstNode.getAttribute("class");
@@ -1378,7 +1372,7 @@ describe("Lineage Panel Integration Tests", function () {
                   }));
                 `, secondNode, secondRect.x + secondRect.width / 2, secondRect.y + secondRect.height / 2);
                 
-                await driver.sleep(200);
+                await sleep(200);
                 
                 const multiSelectedElements = await driver.findElements(By.css(".selected, .vue-flow__node.selected"));
                 console.log(`Found ${multiSelectedElements.length} elements after multi-select`);
@@ -1407,7 +1401,7 @@ describe("Lineage Panel Integration Tests", function () {
               }));
             `, firstEdge, edgeRect.x + edgeRect.width / 2, edgeRect.y + edgeRect.height / 2);
             
-            await driver.sleep(200);
+            await sleep(200);
             console.log("✓ Edge selection tested");
           } else {
             console.log("! Edge has zero size, skipping edge selection test");
@@ -1426,7 +1420,7 @@ describe("Lineage Panel Integration Tests", function () {
           }));
         `, flowPane, paneRect.x + 50, paneRect.y + 50);
         
-        await driver.sleep(200);
+        await sleep(200);
         console.log("✓ Selection clearing tested");
         
         console.log("✓ Selection functionality testing completed");
@@ -1483,7 +1477,7 @@ describe("Lineage Panel Integration Tests", function () {
             await driver.executeScript(`
               document.querySelector('.vue-flow__controls-zoomin').click();
             `);
-            await driver.sleep(300);
+            await sleep(300);
             
             const newTransform = await transformPane[0].getAttribute("style");
             console.log(`Transform after zoom: ${newTransform}`);
@@ -1509,7 +1503,7 @@ describe("Lineage Panel Integration Tests", function () {
               arguments[0].dispatchEvent(event);
             `, flowPane);
             
-            await driver.sleep(300);
+            await sleep(300);
             
             const newTransform = await transformPane[0].getAttribute("style");
             console.log(`Transform after wheel zoom: ${newTransform}`);
@@ -1545,12 +1539,12 @@ describe("Lineage Panel Integration Tests", function () {
         console.log("Testing rapid zoom operations...");
         for (let i = 0; i < 5; i++) {
           await driver.executeScript(`document.querySelector('.vue-flow__controls-zoomin').click();`);
-          await driver.sleep(50);
+          await sleep(50);
         }
         
         for (let i = 0; i < 5; i++) {
           await driver.executeScript(`document.querySelector('.vue-flow__controls-zoomout').click();`);
-          await driver.sleep(50);
+          await sleep(50);
         }
         
         // Test rapid panning
@@ -1564,7 +1558,7 @@ describe("Lineage Panel Integration Tests", function () {
             pane.dispatchEvent(new MouseEvent('mousemove', { clientX: 150, clientY: 150, bubbles: true }));
             pane.dispatchEvent(new MouseEvent('mouseup', { clientX: 150, clientY: 150, bubbles: true }));
           `, flowPane);
-          await driver.sleep(100);
+          await sleep(100);
         }
         
         // Check if interface is still responsive
@@ -1573,7 +1567,7 @@ describe("Lineage Panel Integration Tests", function () {
         
         // Test that VueFlow is still functioning
         await driver.executeScript(`document.querySelector('.vue-flow__controls-fitview').click();`);
-        await driver.sleep(300);
+        await sleep(300);
         
         const endTime = Date.now();
         const testDuration = endTime - startTime;
