@@ -12,29 +12,18 @@ import { Key, until, WebElement } from "selenium-webdriver";
 import "mocha";
 import * as path from "path";
 import { TestCoordinator } from "./test-coordinator";
+import {
+  clickReliably,
+  findElementReliably,
+  waitFor,
+  waitForVueApp,
+  sleep,
+  cleanupEditors,
+} from "./test-utils";
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Helper function to ensure we can find elements with retries
+// Helper function to ensure we can find elements with retries (uses centralized utility)
 const findElementWithRetry = async (driver: WebDriver, selector: By, timeout = 10000): Promise<WebElement> => {
-  const startTime = Date.now();
-  let lastError: any;
-  
-  while (Date.now() - startTime < timeout) {
-    try {
-      const element = await driver.findElement(selector);
-      if (await element.isDisplayed()) {
-        return element;
-      }
-    } catch (error) {
-      lastError = error;
-    }
-    
-    // If element not found, wait a bit and try again
-    await sleep(500);
-  }
-  
-  throw new Error(`Element ${selector} not found after ${timeout}ms. Last error: ${lastError?.message}`);
+  return findElementReliably(driver, selector, { timeout });
 };
 
 // Helper function to ensure section is expanded

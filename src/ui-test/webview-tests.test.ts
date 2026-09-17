@@ -12,8 +12,15 @@ import { Key, until, WebElement } from "selenium-webdriver";
 import "mocha";
 import * as path from "path";
 import { TestCoordinator } from "./test-coordinator";
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+import {
+  clickReliably,
+  findElementReliably,
+  waitFor,
+  waitForLoadingToComplete,
+  waitForVueApp,
+  sleep,
+  cleanupEditors,
+} from "./test-utils";
 
 describe("Bruin Webview Test", function () {
   let webview: WebView;
@@ -38,7 +45,7 @@ describe("Bruin Webview Test", function () {
     try {
       // Close all editors first
       await workbench.executeCommand("workbench.action.closeAllEditors");
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await sleep(1000);
       
       // Execute multiple commands to disable walkthrough-related features
       const disableCommands = [
@@ -72,7 +79,7 @@ describe("Bruin Webview Test", function () {
         
         // Close all editors
         await workbench.executeCommand("workbench.action.closeAllEditors");
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await sleep(500);
         
         // Get current editor titles
         const currentTitles = await editorView.getOpenEditorTitles();
@@ -98,7 +105,7 @@ describe("Bruin Webview Test", function () {
             try {
               await editorView.closeEditor(title);
               console.log(`Closed unwanted editor: ${title}`);
-              await new Promise((resolve) => setTimeout(resolve, 200));
+              await sleep(200);
             } catch (error) {
               console.log(`Could not close editor ${title}:`, error);
             }
@@ -122,7 +129,7 @@ describe("Bruin Webview Test", function () {
     }
 
     await VSBrowser.instance.openResources(testAssetFilePath);
-    await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait for file to open
+    await sleep(3000); // Wait for file to open
 
     // Log the open editor titles for debugging
     const editorView = workbench.getEditorView();
@@ -149,7 +156,7 @@ describe("Bruin Webview Test", function () {
           // Try multiple approaches to close the unwanted editor
           await editorView.closeEditor(title);
           console.log(`Closed post-open unwanted editor: ${title}`);
-          await new Promise((resolve) => setTimeout(resolve, 300));
+          await sleep(300);
         } catch (error) {
           console.log(`Standard close failed for ${title}, trying alternative methods...`);
           
@@ -157,7 +164,7 @@ describe("Bruin Webview Test", function () {
           try {
             // First try to focus on the unwanted tab, then close it
             await editorView.openEditor(title);
-            await new Promise((resolve) => setTimeout(resolve, 200));
+            await sleep(200);
             await workbench.executeCommand("workbench.action.closeActiveEditor");
             console.log(`Closed unwanted editor using workbench command: ${title}`);
           } catch (commandError) {
@@ -168,7 +175,7 @@ describe("Bruin Webview Test", function () {
               console.log("Attempting walkthrough-specific cleanup...");
               try {
                 await workbench.executeCommand("workbench.action.closeAllEditors");
-                await new Promise((resolve) => setTimeout(resolve, 500));
+                await sleep(500);
                 await VSBrowser.instance.openResources(testAssetFilePath);
                 console.log("Reopened test file after closing all editors");
               } catch (reopenError) {
@@ -183,7 +190,7 @@ describe("Bruin Webview Test", function () {
     // If we had to close editors, wait a bit longer for VS Code to stabilize
     if (cleanupNeeded) {
       console.log("Waiting for VS Code to stabilize after cleanup...");
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await sleep(2000);
     }
 
     // Get updated titles after cleanup
@@ -213,7 +220,7 @@ describe("Bruin Webview Test", function () {
             // Alternative approach for final cleanup
             try {
               await editorView.openEditor(title);
-              await new Promise((resolve) => setTimeout(resolve, 200));
+              await sleep(200);
               await workbench.executeCommand("workbench.action.closeActiveEditor");
               console.log(`Closed extra editor using workbench command: ${title}`);
             } catch (commandError) {
@@ -225,9 +232,9 @@ describe("Bruin Webview Test", function () {
                 try {
                   // Close all and reopen just our file
                   await workbench.executeCommand("workbench.action.closeAllEditors");
-                  await new Promise((resolve) => setTimeout(resolve, 1000));
+                  await sleep(1000);
                   await VSBrowser.instance.openResources(testAssetFilePath);
-                  await new Promise((resolve) => setTimeout(resolve, 1000));
+                  await sleep(1000);
                   break; // Exit the loop since we've reopened everything
                 } catch (nuclearError) {
                   console.log("Nuclear option failed:", nuclearError);
@@ -238,7 +245,7 @@ describe("Bruin Webview Test", function () {
         }
       }
       
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await sleep(1000);
       
       // Final verification
       const finalTitles = await editorView.getOpenEditorTitles();
@@ -257,7 +264,7 @@ describe("Bruin Webview Test", function () {
     // Focus on the example.sql file to ensure the Bruin panel opens in the correct column
     console.log("Focusing on example.sql file...");
     await editorView.openEditor("example.sql");
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait for focus
+    await sleep(2000); // Wait for focus
     
     // Verify we're focused on the right editor
     try {
@@ -295,7 +302,7 @@ describe("Bruin Webview Test", function () {
     }    
     // Wait longer for the webview to initialize  
     console.log("Waiting for webview to initialize after command execution...");
-    await new Promise((resolve) => setTimeout(resolve, 8000));
+    await sleep(8000);
     driver = VSBrowser.instance.driver;
 
     // Check if there are multiple iframes and try to find the Bruin panel specifically
