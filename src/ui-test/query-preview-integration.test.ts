@@ -52,32 +52,50 @@ describe("Query Preview Integration Tests", function () {
       await VSBrowser.instance.openResources(testWorkspacePath);
       console.log("✓ Opened test-pipeline folder as workspace");
 
-      // Wait for workspace to be recognized
-      await waitFor(
-        async () => {
-          const elements = await driver.findElements(By.css(".monaco-workbench"));
-          return elements.length > 0 ? true : null;
-        },
-        { timeout: 10000, message: "Workspace not loaded" }
-      );
-      console.log("✓ Workspace context established");
-
       // Open the .bruin.yml file to establish connection context
       const testBruinConfigPath = path.join(testWorkspacePath, ".bruin.yml");
       await VSBrowser.instance.openResources(testBruinConfigPath);
       console.log("✓ Opened .bruin.yml to establish connection context");
-      await sleep(500);
+
+      // Wait for the file to actually appear in the editor (proves workspace is ready)
+      await waitFor(
+        async () => {
+          const editorView = workbench.getEditorView();
+          const titles = await editorView.getOpenEditorTitles();
+          return titles.some((t) => t.includes(".bruin.yml")) ? true : null;
+        },
+        { timeout: 15000, message: "Editor did not open .bruin.yml" }
+      );
+      console.log("✓ Workspace context established");
 
       // Next, open the pipeline.yml file to establish workspace context
       const testPipelineFilePath = path.join(testWorkspacePath, "pipeline.yml");
       await VSBrowser.instance.openResources(testPipelineFilePath);
       console.log("✓ Opened pipeline.yml to establish workspace context");
-      await sleep(500);
+
+      // Wait for pipeline.yml to be open
+      await waitFor(
+        async () => {
+          const editorView = workbench.getEditorView();
+          const titles = await editorView.getOpenEditorTitles();
+          return titles.some((t) => t.includes("pipeline.yml")) ? true : null;
+        },
+        { timeout: 10000, message: "Editor did not open pipeline.yml" }
+      );
 
       // Now open the SQL file for query preview
       await VSBrowser.instance.openResources(testQueryFilePath);
       console.log("✓ Opened example.sql");
-      await sleep(500);
+
+      // Wait for SQL file to be open
+      await waitFor(
+        async () => {
+          const editorView = workbench.getEditorView();
+          const titles = await editorView.getOpenEditorTitles();
+          return titles.some((t) => t.includes("example.sql")) ? true : null;
+        },
+        { timeout: 10000, message: "Editor did not open example.sql" }
+      );
 
       // Now, explicitly focus the query preview panel to ensure it opens
       await workbench.executeCommand("bruin.QueryPreviewView.focus");

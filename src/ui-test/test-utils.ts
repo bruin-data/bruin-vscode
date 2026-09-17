@@ -100,7 +100,9 @@ export async function findElementsReliably(
 }
 
 /**
- * Click element with retry on stale element and click interception errors
+ * Click element with retry on stale element and click interception errors.
+ * IMPORTANT: Pass a By locator (not WebElement) to enable proper retry on stale elements.
+ * When a WebElement is passed, it cannot be re-located on retry.
  */
 export async function clickReliably(
   driver: WebDriver,
@@ -109,32 +111,38 @@ export async function clickReliably(
 ): Promise<void> {
   const { timeout = DEFAULT_TIMEOUT, maxRetries = 3 } = options;
   const startTime = Date.now();
+  const isLocator = elementOrLocator instanceof By;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const element =
-        elementOrLocator instanceof By
-          ? await findElementReliably(driver, elementOrLocator, { timeout: timeout / maxRetries })
-          : elementOrLocator;
+      // Always re-find element when using locator to avoid stale references
+      const element = isLocator
+        ? await findElementReliably(driver, elementOrLocator, { timeout: timeout / maxRetries })
+        : elementOrLocator;
 
       await driver.wait(until.elementIsVisible(element), 5000);
       await element.click();
       return;
     } catch (error: unknown) {
       const err = error as Error & { name?: string };
-      const isRetryable =
-        err.name === "StaleElementReferenceError" ||
-        err.name === "ElementClickInterceptedError" ||
-        err.message?.includes("stale");
+      const isStale = err.name === "StaleElementReferenceError" || err.message?.includes("stale");
+      const isIntercepted = err.name === "ElementClickInterceptedError";
+
+      // If WebElement was passed and it's stale, we can't retry - re-finding isn't possible
+      if (isStale && !isLocator) {
+        console.log("Stale element with WebElement reference - cannot retry without locator");
+        throw error;
+      }
+
+      const isRetryable = isStale || isIntercepted;
 
       if (!isRetryable || attempt === maxRetries || Date.now() - startTime > timeout) {
-        // Last resort: JavaScript click
-        if (err.name === "ElementClickInterceptedError") {
+        // Last resort: JavaScript click for intercepted clicks
+        if (isIntercepted) {
           console.log("Using JavaScript click as fallback");
-          const element =
-            elementOrLocator instanceof By
-              ? await driver.findElement(elementOrLocator)
-              : elementOrLocator;
+          const element = isLocator
+            ? await driver.findElement(elementOrLocator)
+            : elementOrLocator;
           await driver.executeScript("arguments[0].click();", element);
           return;
         }
@@ -279,25 +287,25 @@ export async function setupWorkspaceContext(
   await VSBrowser.instance.openResources(workspacePath);
   console.log("Opened workspace");
 
-  // Wait for workspace to be recognized
-  await waitFor(
-    async () => {
-      try {
-        const driver = VSBrowser.instance.driver;
-        // Check if workspace is loaded by looking for any VS Code UI element
-        const elements = await driver.findElements(By.css(".monaco-workbench"));
-        return elements.length > 0 ? true : null;
-      } catch {
-        return null;
-      }
-    },
-    { timeout: 10000, message: "Workspace not loaded" }
-  );
-
   if (configPath) {
     await VSBrowser.instance.openResources(configPath);
     console.log("Opened config file");
-    await sleep(500);
+
+    // Wait for the file to actually appear in the editor (proves workspace is ready)
+    const workbench = new Workbench();
+    const configFileName = configPath.split("/").pop() || configPath;
+    await waitFor(
+      async () => {
+        try {
+          const editorView = workbench.getEditorView();
+          const titles = await editorView.getOpenEditorTitles();
+          return titles.some((t) => t.includes(configFileName)) ? true : null;
+        } catch {
+          return null;
+        }
+      },
+      { timeout: 15000, message: `Editor did not open ${configFileName}` }
+    );
   }
 
   if (pipelinePath) {
