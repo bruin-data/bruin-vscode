@@ -7659,6 +7659,113 @@ suite("Utility Functions Tests", () => {
     });
   });
 
+  suite("TableDiffPanel error surfacing", () => {
+    let mockWebview: any;
+    let mockWebviewView: any;
+    let panel: any;
+    let PanelClass: any;
+    let compareTablesStub: sinon.SinonStub;
+    let estimateCostStub: sinon.SinonStub;
+
+    setup(() => {
+      mockWebview = {
+        postMessage: sinon.stub(),
+        onDidReceiveMessage: sinon.stub(),
+        options: {},
+        cspSource: "csp",
+        asWebviewUri: sinon.stub(),
+      };
+      mockWebviewView = {
+        webview: mockWebview,
+        onDidChangeVisibility: sinon.stub(),
+        visible: true,
+      };
+
+      compareTablesStub = sinon.stub();
+      estimateCostStub = sinon.stub();
+
+      class MockBruinTableDiff {
+        compareTables = compareTablesStub;
+        estimateCost = estimateCostStub;
+        static cancelDiff = sinon.stub();
+      }
+
+      const TableDiffPanelModule = proxyquire("../panels/TableDiffPanel", {
+        "../bruin/bruinTableDiff": { BruinTableDiff: MockBruinTableDiff },
+        "../providers/BruinExecutableService": {
+          getBruinExecutablePath: sinon.stub().returns("/bin/bruin"),
+        },
+        "../extension/extension": { trackEvent: sinon.stub() },
+      });
+
+      PanelClass = TableDiffPanelModule.TableDiffPanel;
+      panel = new PanelClass(vscode.Uri.file("/mock"), {
+        globalState: { update: sinon.stub(), get: sinon.stub() },
+      } as any);
+      PanelClass._view = mockWebviewView;
+      (panel as any).getWorkspaceSetup = sinon.stub().resolves({ workspaceFolder: "/tmp" });
+
+      sinon.stub(vscode.window, "showErrorMessage");
+      sinon.stub(vscode.window, "withProgress").callsFake((_opts: any, task: any) =>
+        task(
+          { report: sinon.stub() },
+          { onCancellationRequested: sinon.stub().returns({ dispose: sinon.stub() }) }
+        )
+      );
+    });
+
+    teardown(() => {
+      sinon.restore();
+      if (PanelClass) {
+        PanelClass._view = undefined;
+      }
+    });
+
+    const findPost = (command: string) =>
+      mockWebview.postMessage.getCalls().find((c: any) => c.args[0]?.command === command)?.args[0];
+
+    test("cleans a JSON error object returned by a successful command", async () => {
+      compareTablesStub.resolves('{"error":"boom on success"}');
+
+      await (panel as any).executeDiff("c1", "s.t1", "c2", "s.t2", true);
+
+      const msg = findPost("showResults");
+      assert.ok(msg, "expected a showResults message");
+      assert.strictEqual(msg.error, "boom on success");
+      assert.strictEqual(msg.results, "");
+    });
+
+    test("cleans a JSON error blob from a rejected comparison", async () => {
+      compareTablesStub.callsFake(() => Promise.reject('{"error":"rejected boom"}'));
+
+      await (panel as any).executeDiff("c1", "s.t1", "c2", "s.t2", true);
+
+      const msg = findPost("showResults");
+      assert.ok(msg, "expected a showResults message");
+      assert.strictEqual(msg.error, "rejected boom");
+    });
+
+    test("passes plain-text comparison errors through unchanged", async () => {
+      compareTablesStub.callsFake(() => Promise.reject("Connection 'ghost' not found."));
+
+      await (panel as any).executeDiff("c1", "s.t1", "c2", "s.t2", true);
+
+      const msg = findPost("showResults");
+      assert.ok(msg, "expected a showResults message");
+      assert.strictEqual(msg.error, "Connection 'ghost' not found.");
+    });
+
+    test("cleans a JSON error blob from a rejected cost estimate", async () => {
+      estimateCostStub.callsFake(() => Promise.reject('{"error":"cost estimate failed"}'));
+
+      await (panel as any).estimateDiffCost("c1", "s.t1", "c2", "s.t2");
+
+      const msg = findPost("costEstimate");
+      assert.ok(msg, "expected a costEstimate message");
+      assert.strictEqual(msg.error, "cost estimate failed");
+    });
+  });
+
   suite("commandExists", () => {
     let execStub: sinon.SinonStub;
     let commandExistsFunc: typeof bruinUtils.commandExists;
