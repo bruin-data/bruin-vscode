@@ -6,6 +6,7 @@ import { BruinDBTCommand } from "../bruin/bruinDBTCommand";
 import { getUri } from "../utilities/getUri";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 import { trackEvent } from "../extension/extension";
+import { extractTableDiffError } from "../utilities/tableDiffError";
 
 export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = "bruin.tableDiffView";
@@ -335,15 +336,27 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
 
         const sourceInfo = `${sourceConnection}:${sourceTable}`;
         const targetInfo = `${targetConnection}:${targetTable}`;
-        
-        this.showResults(sourceInfo, targetInfo, result);
+
+        const diffError = extractTableDiffError(result);
+        if (diffError && TableDiffPanel._view) {
+          TableDiffPanel._view.webview.postMessage({
+            command: 'showResults',
+            error: diffError,
+            source: sourceInfo,
+            target: targetInfo,
+            results: ''
+          });
+        } else {
+          this.showResults(sourceInfo, targetInfo, result);
+        }
 
         cancelListener.dispose();
       });
 
     } catch (error) {
       console.error('Error executing table diff:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const rawError = error instanceof Error ? error.message : String(error);
+      const errorMessage = extractTableDiffError(rawError) ?? rawError;
 
       // Distinguish cancellation vs genuine error
       if (TableDiffPanel._view) {
@@ -394,9 +407,10 @@ export class TableDiffPanel implements vscode.WebviewViewProvider, vscode.Dispos
       });
     } catch (error) {
       console.error('Error estimating diff cost:', error);
+      const rawError = error instanceof Error ? error.message : String(error);
       TableDiffPanel._view.webview.postMessage({
         command: 'costEstimate',
-        error: error instanceof Error ? error.message : String(error)
+        error: extractTableDiffError(rawError) ?? rawError
       });
     }
   }
