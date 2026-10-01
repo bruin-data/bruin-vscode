@@ -7,7 +7,7 @@ class RudderStackService {
 
   private constructor() {
     const WRITE_KEY = "2q18Kcaed4aDOdwm2SRgz1vS6P6";
-    const DATA_PLANE_URL = "https://getbruinbumlky.dataplane.rudderstack.com";
+    const DATA_PLANE_URL = "https://events-rs.getbruin.com";
 
     window.addEventListener('message', (event) => {
       const message = event.data;

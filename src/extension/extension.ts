@@ -39,7 +39,7 @@ import { checkCliVersion } from "../bruin/bruinUtils";
 let analyticsClient: any = null;
 
 const WRITE_KEY = "2q3zybBJRd9ErKIpkTRSdIahQ0C";
-const DATA_PLANE_URL = "https://getbruinbumlky.dataplane.rudderstack.com";
+const DATA_PLANE_URL = "https://events-rs.getbruin.com";
 const SUPPORTED_LANGUAGES = ["python", "sql"];
 
 /**
