@@ -37,6 +37,8 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       JSON.stringify({
         id: String(Date.now()),
         file: `pipeline-${size}/assets/asset_0041.sql`,
+        // Reopening the active editor does not emit an editor-change event.
+        refreshLineage: true,
         command: "notifications.clearAll",
       })
     );

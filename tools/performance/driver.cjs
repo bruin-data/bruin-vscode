@@ -80,6 +80,9 @@ exports.run = async () => {
       }
       if (request.command)
         await vscode.commands.executeCommand(request.command, ...(request.args || []));
+      if (request.refreshLineage)
+        await require(path.join(root, "out/extension/commands/FlowLineageCommand.js"))
+          .flowLineageCommand(vscode.window.activeTextEditor?.document.uri);
       if (request.right) BruinPanel.render(vscode.Uri.file(root));
       log("request-done", { id: request.id });
     } catch (e) {
