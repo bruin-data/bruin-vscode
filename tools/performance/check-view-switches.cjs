@@ -6,6 +6,11 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 const dir = process.env.PERF_DIR || path.resolve(__dirname, "../../.context/perf");
 const label = process.env.PERF_LABEL || "view-switches";
+const size = Number(process.env.PERF_SIZE || 100);
+const cases = JSON.parse(process.env.PERF_SWITCHES || JSON.stringify([
+  "pipeline", "direct", "all", "direct", "column", "pipeline", "column", "direct",
+  { mode: "direct", via: "pipeline" }, { mode: "direct", via: "column" },
+]));
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 (async () => {
   const c = await require("./cdp.cjs").connect();
@@ -14,27 +19,39 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     assert(c.lineage, "Lineage panel is not ready");
     await c.page.send("Page.bringToFront");
     await c.lineage.send("Emulation.setFocusEmulationEnabled", { enabled: true });
+    await c.lineage.evaluate((size) => {
+      window.__switchFixtureReady = false;
+      const receive = (event) => {
+        const message = event.data;
+        if (message.command === "flow-lineage-message" &&
+            message.payload?.status === "success" &&
+            message.payload.filePath?.replaceAll("\\", "/").endsWith(`pipeline-${size}/assets/asset_0041.sql`)) {
+          window.__switchFixtureReady = true;
+          window.removeEventListener("message", receive);
+        }
+      };
+      window.addEventListener("message", receive);
+    }, size);
     await fs.writeFile(
       path.join(dir, "request.json"),
       JSON.stringify({
         id: String(Date.now()),
-        file: "pipeline-100/assets/asset_0041.sql",
+        file: `pipeline-${size}/assets/asset_0041.sql`,
         command: "notifications.clearAll",
       })
     );
-    await sleep(1500);
-    for (const testCase of [
-      "pipeline",
-      "direct",
-      "all",
-      "direct",
-      "column",
-      "pipeline",
-      "column",
-      "direct",
-      { mode: "direct", via: "pipeline" },
-      { mode: "direct", via: "column" },
-    ]) {
+    let ready = false;
+    for (let attempt = 0; attempt < 120; attempt++) {
+      await sleep(250);
+      ready = await c.lineage.evaluate(() =>
+        window.__switchFixtureReady && !document.querySelector(".loading-overlay") &&
+        document.querySelectorAll(".vue-flow__node").length === 7 &&
+        document.querySelector(".flow")?.textContent.includes("perf.asset_0041")
+      );
+      if (ready) break;
+    }
+    assert(ready, "Initial asset neighborhood did not finish rendering");
+    for (const testCase of cases) {
       const { mode, via } = typeof testCase === "string" ? { mode: testCase } : testCase;
       const result = await c.lineage.evaluate(
         async ({ mode, via }) => {
@@ -55,6 +72,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           let lastChange = started;
           let lastSignature = "";
           let blankFramesAfterReveal = 0;
+          let maxMountedNodes = 0;
           radio.click();
           return new Promise((resolve, reject) => {
             const sample = () => {
@@ -63,6 +81,8 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
               const flow = document.querySelector(".vue-flow");
               const pane = flow?.querySelector(".vue-flow__transformationpane");
               const loading = !!document.querySelector(".loading-overlay");
+              const mounted = [...(flow?.querySelectorAll(".vue-flow__node") || [])];
+              maxMountedNodes = Math.max(maxMountedNodes, mounted.length);
               // Opacity preserves measurement while preventing intermediate paint.
               const visible =
                 pane &&
@@ -70,7 +90,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
                 Number(getComputedStyle(pane).opacity) > 0 &&
                 !loading;
               const nodes = visible
-                ? [...flow.querySelectorAll(".vue-flow__node")].filter(
+                ? mounted.filter(
                     (n) => getComputedStyle(n).visibility === "visible"
                   )
                 : [];
@@ -114,6 +134,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
                   via,
                   ms: Math.round(now - started),
                   blankFramesAfterReveal,
+                  maxMountedNodes,
                   snapshots,
                 });
               requestAnimationFrame(sample);
@@ -130,6 +151,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           via,
           blankFramesAfterReveal: result.blankFramesAfterReveal,
           visibleLayouts: result.snapshots.length,
+          maxMountedNodes: result.maxMountedNodes,
           changes: result.snapshots.map((s) => ({
             ms: s.ms,
             nodes: s.nodes,
@@ -152,8 +174,10 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           `${result.mode}: graph flickered after reveal`
         );
         assert(result.snapshots[0].matching, `${result.mode}: revealed the wrong graph`);
+        if (result.mode === "pipeline")
+          assert.equal(result.maxMountedNodes, size, "Pipeline must mount every node before fitting");
       }
-    console.log("Completed all ten view switches, including interrupted layouts");
+    console.log(`Completed ${cases.length} view switches on ${size} assets`);
   } finally {
     c.close();
   }

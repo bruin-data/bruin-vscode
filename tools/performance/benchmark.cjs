@@ -1,10 +1,4 @@
-// Run after launch.cjs has opened both panels. Optional PERF_LABEL and PERF_CASES.
-// Metrics: file-request -> first matching details / laid-out visible graph frame,
-// main-thread long tasks (>50ms), mounted DOM, CLI count, and message bytes.
-// The pipeline graph is virtualized: readiness requires visible nodes and no
-// loading overlay; DOM node counts are mounted nodes, not total pipeline size.
-// Cold pipeline cases clear the parse cache. Cases must switch the active file.
-// Results and the final screenshot are written under PERF_DIR (.context/perf).
+// Run after launch.cjs has opened both panels; see README.md for options.
 const fs = require("fs/promises");
 const path = require("path");
 const perfDir = process.env.PERF_DIR || path.resolve(__dirname, "../../.context/perf");

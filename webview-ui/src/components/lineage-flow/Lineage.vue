@@ -68,13 +68,13 @@
       />
     </VueFlow>
 
-    <!-- Pipeline View (no special filter controls; use Asset behavior) -->
+    <!-- Measure every pipeline node before enabling viewport culling. -->
     <VueFlow
       v-if="showPipelineView"
       :id="PIPELINE_FLOW_ID"
       :nodes="pipelineElements.nodes"
       :edges="pipelineElements.edges"
-      :only-render-visible-elements="true"
+      :only-render-visible-elements="!viewportPending"
       @nodesInitialized="onPipelineNodesInitialized"
       @moveStart="onViewportMoveStart"
       :min-zoom="0.1"

@@ -1,7 +1,4 @@
-// Usage: node tools/performance/generate-pipelines.cjs [100 500 1500]
-// PERF_DIR selects the output directory; BRUIN_BIN selects the Bruin executable.
-// Generates a layered DAG (25 assets/layer, 3 upstreams, 20 columns/asset), then
-// requires bruin validate to pass. Never executes the SQL or needs a warehouse.
+// Generate local fixtures and require bruin validate to pass for each size.
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");

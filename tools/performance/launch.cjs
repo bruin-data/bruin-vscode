@@ -1,10 +1,4 @@
-// Build first: npm run compile && npm run build:webview
-// Generate fixtures: node tools/performance/generate-pipelines.cjs
-// Launch: node tools/performance/launch.cjs
-// Benchmark (another terminal): node tools/performance/benchmark.cjs
-// CODE_BIN may override the VS Code executable (not the CLI shell wrapper).
-// Install the extension's YAML dependency into PERF_DIR/extensions if needed:
-// code --extensions-dir .context/perf/extensions --install-extension redhat.vscode-yaml
+// Launch an isolated extension host; see README.md for setup.
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
