@@ -248,7 +248,7 @@ export class QueryPreviewPanel implements vscode.WebviewViewProvider, vscode.Dis
             default-src 'none';
             img-src ${webview.cspSource} https:;
             script-src 'nonce-${nonce}' ${webview.cspSource} https://cdn.rudderlabs.com/ https://cdn.rudderstack.com/ https://api.rudderstack.com;
-            connect-src https://api.rudderstack.com https://getbruinbumlky.dataplane.rudderstack.com;
+            connect-src https://api.rudderstack.com https://events-rs.getbruin.com;
             style-src ${webview.cspSource} 'unsafe-inline';
             font-src ${webview.cspSource};
          ">      
