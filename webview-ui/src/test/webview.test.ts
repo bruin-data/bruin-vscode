@@ -34,6 +34,9 @@ import {
 } from '@/utilities/assetDependencies';
 import { mount } from "@vue/test-utils";
 
+// These tests exercise graph construction; workers run in the real webview.
+vi.mock("@/utilities/elkLayout", () => ({ layoutGraph: vi.fn() }));
+
 // Mock VSCode API wrapper to control persistent webview state
 vi.mock("@/utilities/vscode", () => {
   const storage: Record<string, any> = {};

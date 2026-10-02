@@ -302,6 +302,7 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="Content-Security-Policy" content="
             default-src 'none';
+            worker-src blob:;
             img-src ${webview.cspSource} https:;
             script-src 'nonce-${nonce}' ${webview.cspSource} https://cdn.rudderlabs.com/ https://cdn.rudderstack.com/ https://api.rudderstack.com;
             connect-src https://api.rudderstack.com https://getbruinbumlky.dataplane.rudderstack.com;

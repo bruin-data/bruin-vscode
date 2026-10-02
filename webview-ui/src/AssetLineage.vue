@@ -32,8 +32,6 @@ const isReloading = ref(false); // A new parse is in flight (file switch / edit)
 let expectedFile: string | undefined;
 let displayedFile: string | undefined;
 
-let lastMessageId: string | null = null;
-
 /**
  * Handles incoming messages from the VSCode extension.
  * 
@@ -72,20 +70,17 @@ const handleMessage = (event) => {
       const newData = updateValue(message, "success");
       const newError = updateValue(message, "error");
 
-      // Create a detailed hash to detect truly identical messages
-      const messageId = JSON.stringify({ 
-        assetId: newData?.id, 
-        upstreamNames: newData?.upstreams?.map(u => u.name).sort(), 
-        downstreamNames: newData?.downstream?.map(d => d.name).sort(),
-        error: newError,
-        timestamp: Math.floor(Date.now() / 50) // Group within 50ms only
-      });
-      
-      // Skip if this is the exact same message we just processed
-      if (messageId === lastMessageId && messageId !== 'null') {
+      // Cached parses are resent on editor focus and panel visibility changes.
+      // Compare the actual input, not a time bucket, so unchanged data does not
+      // restart layout or reset the user's viewport.
+      const previous = lineageData.value;
+      if (responseFile === displayedFile && newError === lineageError.value &&
+          newData?.id === previous?.id && newData?.name === previous?.name &&
+          newData?.isPipelineView === previous?.isPipelineView &&
+          newData?.hasColumnData === previous?.hasColumnData &&
+          newData?.pipeline === previous?.pipeline) {
         return;
       }
-      lastMessageId = messageId;
 
       // A response for a different file than what's drawn is a switch; on
       // failure that must drop the previous asset's graph. A same-file re-parse
@@ -114,10 +109,17 @@ setTimeout(() => {
   }
 }, 10000);
 
+let parsedPipelineSource: string | undefined;
+let parsedPipeline: any;
 const pipeline = computed(() => {
   if (!lineageData.value?.pipeline) return null;
   try {
-    return JSON.parse(lineageData.value.pipeline);
+    const source = lineageData.value.pipeline;
+    if (source !== parsedPipelineSource) {
+      parsedPipeline = JSON.parse(source);
+      parsedPipelineSource = source;
+    }
+    return parsedPipeline;
   } catch (error) {
     console.error("Error parsing pipeline data:", error);
     return null;

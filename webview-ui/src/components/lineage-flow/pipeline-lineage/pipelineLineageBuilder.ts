@@ -1,6 +1,6 @@
 import type { Asset } from '@/types';
 import type { Node, Edge } from "@vue-flow/core";
-import ELK from "elkjs/lib/elk.bundled.js";
+import { layoutGraph } from "@/utilities/elkLayout";
 
 /**
  * Process pipeline data to generate a complete lineage graph
@@ -65,13 +65,11 @@ function generateGraph(lineageData: { assets: Asset[], assetMap: { [key: string]
   const { assetMap } = lineageData;
   const nodes: Node[] = [];
   const edges: Edge[] = [];
-  const processedAssets = new Set<string>();
 
   // Create nodes and edges for all assets
   lineageData.assets.forEach(asset => {
     const node = createNode(asset, asset.name === focusAssetName);
     nodes.push(node);
-    processedAssets.add(asset.name);
 
     // Add upstream edges
     if (asset.upstreams && asset.upstreams.length > 0) {
@@ -81,19 +79,6 @@ function generateGraph(lineageData: { assets: Asset[], assetMap: { [key: string]
             id: `edge-${upstream.value}-to-${asset.name}`,
             source: upstream.value,
             target: asset.name
-          });
-        }
-      });
-    }
-
-    // Add downstream edges
-    if (asset.downstreams && asset.downstreams.length > 0) {
-      asset.downstreams.forEach(downstream => {
-        if (downstream.type === 'asset' && downstream.value && assetMap[downstream.value]) {
-          edges.push({
-            id: `edge-${asset.name}-to-${downstream.value}`,
-            source: asset.name,
-            target: downstream.value
           });
         }
       });
@@ -123,10 +108,11 @@ function createNode(asset: Asset, isFocusAsset: boolean = false): Node {
     }
   };
 }
-// simplify this from o2, use a dictionary instead of two loops
+// Index positions once instead of scanning all layout children for every node.
 function updateNodePositions(layout: any, nodes: Node[]) {
+  const positions = new Map<string, any>(layout.children.map((child: any) => [child.id, child]));
   const updatedNodes = nodes.map((node) => {
-    const layoutNode = layout.children.find((child: any) => child.id === node.id);
+    const layoutNode = positions.get(node.id);
     if (layoutNode) {
       return {
         ...node,
@@ -151,10 +137,26 @@ function estimateNodeHeight(node: Node): number {
 
 // Function to apply ELK layout
 async function applyLayout(nodes: Node[], edges: Edge[]) : Promise<{ nodes: Node[], edges: Edge[] }> {
-  const elk = new ELK();
 
   if (nodes.length === 0) {
     return { nodes: [], edges: [] };
+  }
+
+  // ELK positions asset boxes, not individual column handles. Parallel column
+  // edges between the same boxes add expensive routing/crossing work without
+  // adding any topology. Keep every original edge for Vue Flow to draw.
+  const layoutEdges: Edge[] = [];
+  const targetsBySource = new Map<string, Set<string>>();
+  for (const edge of edges) {
+    let targets = targetsBySource.get(edge.source);
+    if (!targets) {
+      targets = new Set();
+      targetsBySource.set(edge.source, targets);
+    }
+    if (!targets.has(edge.target)) {
+      targets.add(edge.target);
+      layoutEdges.push(edge);
+    }
   }
 
   const elkGraph = {
@@ -164,7 +166,7 @@ async function applyLayout(nodes: Node[], edges: Edge[]) : Promise<{ nodes: Node
       "elk.direction": "RIGHT",
       "elk.layered.spacing.nodeNodeBetweenLayers": "100",
       "elk.spacing.nodeNode": "0.0",
-      "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
+      "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
       "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
       "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
       "elk.layered.cycleBreaking.strategy": "DEPTH_FIRST",
@@ -178,7 +180,7 @@ async function applyLayout(nodes: Node[], edges: Edge[]) : Promise<{ nodes: Node
       width: 224, // Same as node-content width
       height: estimateNodeHeight(node),
     })),
-    edges: edges.map((edge) => ({
+    edges: layoutEdges.map((edge) => ({
       id: edge.id,
       sources: [edge.source],
       targets: [edge.target],
@@ -186,7 +188,7 @@ async function applyLayout(nodes: Node[], edges: Edge[]) : Promise<{ nodes: Node
   };
 
   try {
-    const layout = await elk.layout(elkGraph);
+    const layout = await layoutGraph(elkGraph);
     if (layout.children && layout.children.length) {
       const updatedNodes = updateNodePositions(layout, nodes);
       return { nodes: updatedNodes, edges };

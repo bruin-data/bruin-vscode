@@ -1,6 +1,6 @@
 <template>
-  <div class="flow">
-    <div v-if="shouldShowLoading || isBuildingView" class="loading-overlay">
+  <div class="flow" :class="{ 'viewport-pending': viewportPending }">
+    <div v-if="shouldShowLoading || isBuildingView || viewportPending" class="loading-overlay">
       <vscode-progress-ring></vscode-progress-ring>
       <span class="ml-2 text-editor-fg">{{ loadingMessage }}</span>
     </div>
@@ -16,6 +16,7 @@
       :node-draggable="true"
       @nodesDragged="onNodesDragged"
       @nodesInitialized="onAssetNodesInitialized"
+      @moveStart="onViewportMoveStart"
       ref="flowRef"
     >
       <Background />
@@ -56,6 +57,9 @@
       />
       
       <Controls
+        @zoom-in="onManualViewportChange"
+        @zoom-out="onManualViewportChange"
+        @fit-view="autoFitOnResize = true"
         :position="PanelPosition.BottomLeft"
         showZoom
         showFitView
@@ -70,7 +74,9 @@
       :id="PIPELINE_FLOW_ID"
       :nodes="pipelineElements.nodes"
       :edges="pipelineElements.edges"
+      :only-render-visible-elements="true"
       @nodesInitialized="onPipelineNodesInitialized"
+      @moveStart="onViewportMoveStart"
       :min-zoom="0.1"
       class="basic-flow"
       :draggable="true"
@@ -107,6 +113,9 @@
       </template>
       <MiniMap pannable zoomable class="minimap-bottom-right" />
       <Controls
+        @zoom-in="onManualViewportChange"
+        @zoom-out="onManualViewportChange"
+        @fit-view="autoFitOnResize = true"
         :position="PanelPosition.BottomLeft"
         showZoom
         showFitView
@@ -122,6 +131,7 @@
       :nodes="columnElements.nodes"
       :edges="columnElements.edges"
       @nodesInitialized="onColumnNodesInitialized"
+      @moveStart="onViewportMoveStart"
       :min-zoom="0.1"
       class="basic-flow"
       :draggable="true"
@@ -174,6 +184,9 @@
       </template>
       <MiniMap pannable zoomable class="minimap-bottom-right" />
       <Controls
+        @zoom-in="onManualViewportChange"
+        @zoom-out="onManualViewportChange"
+        @fit-view="autoFitOnResize = true"
         :position="PanelPosition.BottomLeft"
         showZoom
         showFitView
@@ -199,8 +212,8 @@ import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import { MiniMap } from "@vue-flow/minimap";
 import "@vue-flow/controls/dist/style.css";
-import { computed, onMounted, watch, ref, nextTick } from "vue";
-import ELK from "elkjs/lib/elk.bundled.js";
+import { computed, onMounted, onUnmounted, watch, ref, nextTick } from "vue";
+import { layoutGraph } from "@/utilities/elkLayout";
 import CustomNode from "@/components/lineage-flow/custom-nodes/CustomNodes.vue";
 import CustomNodeWithColumn from "@/components/lineage-flow/custom-nodes/CustomNodesWithColumn.vue";
 import FilterTab from "@/components/lineage-flow/filterTab/filterTab.vue";
@@ -232,6 +245,9 @@ const columnFetchPending = ref(false);
 // True while a pipeline/column graph is being (re)built. Drives an immediate
 // loading overlay for those slower builds, instead of a bare dark canvas.
 const isBuildingView = ref(false);
+// Nodes must mount for Vue Flow to measure them, but their initial viewport
+// must not paint. Reveal each replacement graph only after its fit is applied.
+const viewportPending = ref(false);
 // Bumped whenever a (re)build starts; an async build only applies its result
 // if it's still the latest, so a slow older build can't overwrite a newer one.
 let buildGeneration = 0;
@@ -275,7 +291,7 @@ const shouldShowError = computed(() => {
 });
 
 const shouldShowAssetView = computed(() => {
-  return !showPipelineView.value && !showColumnView.value && !shouldShowLoading.value;
+  return !showPipelineView.value && !showColumnView.value;
 });
 
 // Each view gets its own Vue Flow instance id so their viewports don't leak
@@ -286,9 +302,9 @@ const COLUMN_FLOW_ID = "column-lineage-flow";
 
 // ===== Asset View State =====
 const flowRef = ref(null);
-const { nodes, edges, addNodes, addEdges, setNodes, setEdges, fitView, onNodeMouseEnter, onNodeMouseLeave, getNodes, getEdges } = useVueFlow(ASSET_FLOW_ID);
-const { fitView: fitPipelineView } = useVueFlow(PIPELINE_FLOW_ID);
-const { fitView: fitColumnView, getEdges: getColumnEdges, setEdges: setColumnEdges } = useVueFlow(COLUMN_FLOW_ID);
+const { nodes, edges, addNodes, addEdges, setNodes, setEdges, fitView, dimensions: assetDimensions, onNodeMouseEnter, onNodeMouseLeave, getNodes, getEdges } = useVueFlow(ASSET_FLOW_ID);
+const { fitView: fitPipelineView, dimensions: pipelineDimensions, nodes: pipelineNodes } = useVueFlow(PIPELINE_FLOW_ID);
+const { fitView: fitColumnView, dimensions: columnDimensions, nodes: columnNodes, getEdges: getColumnEdges, setEdges: setColumnEdges } = useVueFlow(COLUMN_FLOW_ID);
 const elements = computed(() => [...nodes.value, ...edges.value]);
 const selectedNodeId = ref<string | null>(null);
 const isLoadingLocal = ref(true);
@@ -297,11 +313,8 @@ const filterType = ref<"direct" | "all">("direct");
 const expandAllDownstreams = ref(false);
 const expandAllUpstreams = ref(false);
 const expandedNodes = ref<{ [key: string]: boolean }>({});
-const elk = new ELK();
 // Track asset graph version to avoid reusing cached layout after interactive changes
 const assetGraphVersion = ref(0);
-// Use instant fit on first render after switching back to asset view
-const nextFitInstant = ref(false);
 // Key to reset asset FilterTab (collapse panel) when switching back
 const assetFilterTabKey = ref(0);
 
@@ -399,7 +412,9 @@ const applyLayout = async (inputNodes?: any[], inputEdges?: any[]) => {
       "elk.direction": "RIGHT",
       "elk.layered.spacing.nodeNodeBetweenLayers": "150",
       "elk.spacing.nodeNode": "0.0",
-      "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
+      // Preserve the centered placement of small asset neighborhoods. The
+      // faster strategy matters for expanded graphs, but can skew short fans.
+      "elk.layered.nodePlacement.strategy": nodesToLayout.length <= 100 ? "NETWORK_SIMPLEX" : "BRANDES_KOEPF",
       "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
       "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
       "elk.layered.cycleBreaking.strategy": "DEPTH_FIRST",
@@ -421,10 +436,11 @@ const applyLayout = async (inputNodes?: any[], inputEdges?: any[]) => {
     })),
   };
   try {
-    const layout = await elk.layout(elkGraph as any);
+    const layout = await layoutGraph(elkGraph as any);
     if (layout.children && layout.children.length) {
+      const positions = new Map(layout.children.map((child) => [child.id, child]));
       const layoutedNodes = nodesToLayout.map((node: any) => {
-        const layoutNode = (layout.children as any)?.find((child: any) => child.id === node.id);
+        const layoutNode = positions.get(node.id);
         return layoutNode
           ? {
               ...node,
@@ -498,15 +514,40 @@ const onNodesDragged = (draggedNodes: NodeDragEvent[]) => {
 };
 
 
-// Fit view helper - now with smart auto-fit logic
-const fitViewSmooth = async (forceAutoFit = false, useAnimation = false) => {
-  await nextTick();
+// A fit requested just after setNodes can see the previous graph's measured
+// bounds. Coalesce fits and let ResizeObserver + Vue Flow finish measuring.
+let fitRequest = 0;
+const autoFitOnResize = ref(true);
+const prepareViewportFit = () => {
+  ++fitRequest;
+  viewportPending.value = true;
+  shouldAutoFit.value = true;
+};
+const activeView = computed(() => showColumnView.value ? "column" : showPipelineView.value ? "pipeline" : "asset");
+watch(activeView, () => {
+  // Invalidate both the outgoing layout and any fit waiting for a frame.
+  ++buildGeneration;
+  prepareViewportFit();
+  autoFitOnResize.value = true;
+  columnFetchPending.value = false;
+  isBuildingView.value = false;
+  isLayouting.value = false;
+}, { flush: "sync" });
 
-  // Only auto-fit if explicitly requested or first load
+const onManualViewportChange = () => {
+  autoFitOnResize.value = false;
+  ++fitRequest; // A pending automatic fit must not undo a user gesture.
+};
+const onViewportMoveStart = ({ event }: { event: unknown }) => {
+  if (event) onManualViewportChange();
+};
+
+const fitViewSmooth = async (forceAutoFit = false, useAnimation = false) => {
   if (!forceAutoFit && !shouldAutoFit.value) {
     return;
   }
-  
+  const request = ++fitRequest;
+  const generation = buildGeneration;
   const duration = useAnimation ? 300 : 0;
   const fit = showColumnView.value
     ? fitColumnView
@@ -514,15 +555,36 @@ const fitViewSmooth = async (forceAutoFit = false, useAnimation = false) => {
       ? fitPipelineView
       : fitView;
 
-  try {
-    fit({ padding: 0.2, duration });
-    shouldAutoFit.value = false; // Disable auto-fit after first use
-  } catch (e) {
-    await nextTick();
-    fit({ padding: 0.2, duration });
+  await nextTick();
+  await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+  if (request !== fitRequest || generation !== buildGeneration) return;
+  if (isBuildingView.value || columnFetchPending.value) return;
+  const graphNodes = showColumnView.value ? columnNodes.value : showPipelineView.value ? pipelineNodes.value : nodes.value;
+  // fitView silently omits unmeasured nodes, producing a partial fit followed
+  // by another jump. nodesInitialized will retry once the whole graph is ready.
+  if (!graphNodes.length || graphNodes.some(node => !node.hidden && (!node.dimensions.width || !node.dimensions.height))) return;
+
+  const fitted = await fit({ padding: 0.2, duration });
+  await nextTick();
+  if (fitted && request === fitRequest && generation === buildGeneration) {
     shouldAutoFit.value = false;
+    viewportPending.value = false;
   }
 };
+
+const activeDimensions = computed(() => showColumnView.value
+  ? columnDimensions.value
+  : showPipelineView.value ? pipelineDimensions.value : assetDimensions.value);
+
+watch(
+  () => [activeDimensions.value.width, activeDimensions.value.height],
+  () => {
+    if (autoFitOnResize.value) void fitViewSmooth(true, false);
+  },
+  { flush: "post" }
+);
+
+onUnmounted(() => { ++fitRequest; });
 
 const _updateGraph = async () => {
   if (!showPipelineView.value && !showColumnView.value) {
@@ -551,6 +613,7 @@ const _updateGraph = async () => {
         if (gen !== buildGeneration) {
           return;
         }
+        prepareViewportFit();
         setNodes(layoutedGraphData.nodes);
         setEdges(layoutedGraphData.edges);
         isLayouting.value = false;
@@ -559,6 +622,7 @@ const _updateGraph = async () => {
 
         await fitViewSmooth(true, false);
       } else {
+        viewportPending.value = false;
         setNodes([]);
         setEdges([]);
         isLayouting.value = false;
@@ -566,8 +630,11 @@ const _updateGraph = async () => {
       }
     } catch (error) {
       console.error("Error updating graph:", error);
-      isLayouting.value = false;
-      isLoadingLocal.value = false;
+      if (gen === buildGeneration) {
+        viewportPending.value = false;
+        isLayouting.value = false;
+        isLoadingLocal.value = false;
+      }
     }
   }
 };
@@ -722,8 +789,7 @@ const handleAssetView = async (emittedData: {
   // Force FilterTab remount in asset view to close the panel
   assetFilterTabKey.value++;
   
-  // Don't force auto-fit when switching back to asset view
-  // The _updateGraph function will handle viewport restoration
+  // _updateGraph reveals the replacement once it has been measured and fitted.
   await _updateGraph();
 };
 
@@ -799,6 +865,7 @@ watch(
   () => [filterType.value, expandAllUpstreams.value, expandAllDownstreams.value],
   () => {
     if (props.assetDataset && props.pipelineData && !showPipelineView.value && !showColumnView.value) {
+      prepareViewportFit();
       updateGraph();
     }
   },
@@ -808,6 +875,9 @@ watch(
 // Clear every view's graph. Used when the new target has no lineage (error or
 // empty parse) so the previous asset's graph isn't left visible in place.
 const clearAllGraphs = () => {
+  ++buildGeneration;
+  ++fitRequest;
+  viewportPending.value = false;
   setNodes([]);
   setEdges([]);
   pipelineElements.value = { nodes: [], edges: [] };
@@ -828,6 +898,7 @@ watch(
 
     if (key !== lastViewKey) {
       // Switched target: reset to its default view.
+      autoFitOnResize.value = true;
       lastViewKey = key;
       selectDefaultViewForTarget();
       return;
@@ -851,6 +922,7 @@ watch(
   () => props.LineageError,
   (newError) => {
     if (newError) {
+      viewportPending.value = false;
       columnFetchPending.value = false;
       isBuildingView.value = false;
       error.value = newError;
@@ -911,12 +983,14 @@ const onPipelineNodeClick = (nodeId: string) => {
 
 const buildPipelineElements = async () => {
   if (!props.pipelineData) {
+    viewportPending.value = false;
     pipelineElements.value = { nodes: [], edges: [] };
     return;
   }
   // Clear the previous pipeline's graph and show loading so the stale graph
   // isn't left on screen while this (possibly slow) build runs.
   pipelineElements.value = { nodes: [], edges: [] };
+  prepareViewportFit();
   isBuildingView.value = true;
   const gen = ++buildGeneration;
   try {
@@ -931,19 +1005,25 @@ const buildPipelineElements = async () => {
       return;
     }
     pipelineElements.value = { nodes: layoutNodes, edges: layoutEdges };
+    if (!layoutNodes.length) viewportPending.value = false;
+  } catch (err) {
+    if (gen === buildGeneration) {
+      viewportPending.value = false;
+      error.value = "Failed to generate pipeline lineage.";
+    }
+    console.error("Error building pipeline lineage:", err);
   } finally {
     if (gen === buildGeneration) {
       isBuildingView.value = false;
-      // The pipeline graph is now drawn. Clear the initial loading flag, which
-      // otherwise only ever gets cleared by the asset-view path (_updateGraph) —
-      // leaving the spinner stuck when a pipeline is opened before any asset.
+      // Layout is ready; viewportPending still covers measurement and fitting.
+      // Clear the initial asset-loading flag for a pipeline opened cold.
       isLoadingLocal.value = false;
     }
   }
 };
 
 const onPipelineNodesInitialized = async () => {
-  await fitViewSmooth(true, false); 
+  if (activeView.value === "pipeline" && shouldAutoFit.value) await fitViewSmooth();
 };
 
 const handleAssetViewWithFilter = (filterState?: { filterType: "direct" | "all"; expandAllUpstreams: boolean; expandAllDownstreams: boolean }) => {
@@ -1116,10 +1196,12 @@ const buildColumnElements = async () => {
   // has resolved — clear it so the spinner can't hang if columns are absent.
   columnFetchPending.value = false;
   if (!newPipelineData) {
+    viewportPending.value = false;
     columnElements.value = { nodes: [], edges: [] };
     return;
   }
   if (!hasColumnLineageData(newPipelineData)) {
+    viewportPending.value = false;
     columnElements.value = { nodes: [], edges: [] };
     error.value = "No column lineage data found. To view column-level lineage, ensure the pipeline data includes column information";
     return;
@@ -1128,6 +1210,7 @@ const buildColumnElements = async () => {
   // Clear the previous graph and show loading so a stale column graph isn't
   // left on screen while this build runs.
   columnElements.value = { nodes: [], edges: [] };
+  prepareViewportFit();
   isBuildingView.value = true;
   const gen = ++buildGeneration;
   try {
@@ -1154,22 +1237,28 @@ const buildColumnElements = async () => {
     });
 
     columnElements.value = { nodes: layoutNodes, edges: layoutEdges };
+    if (!layoutNodes.length) viewportPending.value = false;
+  } catch (err) {
+    if (gen === buildGeneration) {
+      viewportPending.value = false;
+      error.value = "Failed to generate column lineage.";
+    }
+    console.error("Error building column lineage:", err);
   } finally {
     if (gen === buildGeneration) {
       isBuildingView.value = false;
-      // Same as the pipeline path: clear the initial loading flag so a column
-      // view opened cold doesn't leave the spinner stuck.
+      // Keep viewportPending until fitting finishes, but clear initial loading.
       isLoadingLocal.value = false;
     }
   }
 };
 
 const onColumnNodesInitialized = async () => {
-  await fitViewSmooth(true, false); 
+  if (activeView.value === "column" && shouldAutoFit.value) await fitViewSmooth();
 };
 
 const onAssetNodesInitialized = async () => {
-  await fitViewSmooth(true, false); 
+  if (activeView.value === "asset" && shouldAutoFit.value) await fitViewSmooth();
 };
 
 // Walk the column-lineage edges connected to a column, upstream and downstream.
@@ -1252,6 +1341,13 @@ const handleColumnLeave = (): void => {
 
 .flow {
   @apply relative flex h-screen w-full p-0 !important;
+}
+
+/* Keep layout/measurement running without exposing the pre-fit frame. */
+.viewport-pending .vue-flow__transformationpane,
+.viewport-pending .vue-flow__minimap {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .vue-flow__controls {

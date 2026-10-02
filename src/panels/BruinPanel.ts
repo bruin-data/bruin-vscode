@@ -254,6 +254,7 @@ export class BruinPanel {
           this._panel.webview.postMessage({
             command: "file-changed",
             filePath: newFilePath,
+            assetDetailsPending: true,
           });
           
           await this._handleAssetDetection(this._lastRenderedDocumentUri);
@@ -281,6 +282,7 @@ export class BruinPanel {
               this._panel.webview.postMessage({
                 command: "file-changed",
                 filePath: filePath,
+                assetDetailsPending: true,
               });
               await this._handleAssetDetection(file);
             }
@@ -1530,9 +1532,9 @@ export class BruinPanel {
             break;
           case "bruin.getPipelineAssets":
             console.log("Getting pipeline assets");
-            // -c: also feeds the lineage panel, so a column-less fetch would
-            // clobber its column-level lineage.
-            flowLineageCommand(this._lastRenderedDocumentUri, "BruinPanel", true);
+            // Asset pickers only need the asset list. Keep this separate from
+            // the lineage view and its on-demand column analysis.
+            flowLineageCommand(this._lastRenderedDocumentUri, "BruinPanel", false);
             break;
           case "bruin.createEnvironment":
             trackEvent("Command Executed", { command: "createEnvironment", source: "extension" });
@@ -1707,12 +1709,14 @@ export class BruinPanel {
               );
 
               if (this._lastRenderedDocumentUri) {
-                const pipelineData = await pipelineParser.parsePipelineConfig(this._lastRenderedDocumentUri.fsPath);
+                const requestedPath = this._lastRenderedDocumentUri.fsPath;
+                const pipelineData = await pipelineParser.parsePipelineConfig(requestedPath);
                 
-                // Send back the pipeline data including variables
+                // Variables must not carry the entire pipeline (several MB).
                 BruinPanel.postMessage("pipeline-variables-message", { 
                   status: "success", 
-                  message: pipelineData 
+                  message: { variables: pipelineData.variables || {} },
+                  filePath: requestedPath
                 });
               } else {
                 BruinPanel.postMessage("pipeline-variables-message", { 

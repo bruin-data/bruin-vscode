@@ -2163,6 +2163,8 @@ function receiveMessage(event: { data: any }) {
       break;
 
     case "pipeline-variables-message":
+      // A slow response for the previous asset must not populate this asset.
+      if (envelope.payload?.filePath && normalizePath(envelope.payload.filePath) !== normalizePath(props.filePath)) break;
       isRequestingVariables.value = false;
       const filePath = props.filePath;
 
@@ -2174,7 +2176,7 @@ function receiveMessage(event: { data: any }) {
       if (envelope.payload && envelope.payload.status === "success") {
         // Store the fetched pipeline variables locally, ensuring they're serializable
         try {
-          const serializableData = JSON.parse(JSON.stringify(envelope.payload.message));
+          const serializableData = { variables: envelope.payload.message?.variables || {} };
           fetchedVariables.value = {
             ...fetchedVariables.value,
             [filePath]: serializableData,
