@@ -602,6 +602,9 @@
                 },
                 "api_token": {
                     "type": "string"
+                },
+                "api_url": {
+                    "type": "string"
                 }
             },
             "additionalProperties": false,
@@ -860,6 +863,9 @@
                 "database": {
                     "type": "string"
                 },
+                "cluster": {
+                    "type": "string"
+                },
                 "http_port": {
                     "type": "integer"
                 },
@@ -868,6 +874,22 @@
                 },
                 "read_only": {
                     "type": "boolean"
+                },
+                "settings": {
+                    "additionalProperties": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "boolean"
+                            }
+                        ]
+                    },
+                    "type": "object"
                 }
             },
             "additionalProperties": false,
