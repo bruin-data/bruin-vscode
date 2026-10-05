@@ -4,7 +4,6 @@
 
 ## [0.84.6]
 - Fixed the Table Diff panel showing a raw `{"error": ...}` JSON blob instead of the actual error message when a diff fails.
-- Updated the embedded dashboard preview to dac v0.17.0, moved telemetry to `events-rs.getbruin.com`, and updated dependencies to resolve security advisories.
 
 ## [0.84.5]
 - Fixed unreadable header text when sorting a column in the query preview.
