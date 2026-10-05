@@ -1,0 +1,25 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    # A schedule is required; the zero limit disables routine version PRs only.
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+    groups:
+      extension-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/webview-ui"
+    # Security updates are independent of the version-update schedule and limit.
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+    groups:
+      webview-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
