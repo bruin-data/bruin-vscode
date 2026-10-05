@@ -1,4 +1,9 @@
 # Changelog
+## [0.84.7]
+- Faster asset panel and lineage for large pipelines: smaller messages between the extension and the panels, fewer redundant CLI calls and parses, and graph layout moved off the UI thread.
+- Fixed the lineage graph appearing clipped or jumping after it loads; it now stays centered when the panel is resized and keeps your manual pan/zoom.
+- Updated the embedded dashboard preview to dac v0.24.0.
+
 ## [0.84.6]
 - Fixed the Table Diff panel showing a raw `{"error": ...}` JSON blob instead of the actual error message when a diff fails.
 - Updated the embedded dashboard preview to dac v0.17.0, moved telemetry to `events-rs.getbruin.com`, and updated dependencies to resolve security advisories.
