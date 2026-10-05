@@ -23,7 +23,7 @@ export class BruinInternalParse extends BruinCommand {
 
         // 30s deadline so a hung CLI surfaces an error without failing real pipelines.
         let timeout: NodeJS.Timeout | undefined;
-        const pipelineMeta = await Promise.race([
+        const pipelineMeta: any = await Promise.race([
           parser.parsePipelineConfig(filePath),
           new Promise((_, reject) => {
             timeout = setTimeout(() => reject(new Error("Parsing timeout")), 30000);
@@ -32,7 +32,13 @@ export class BruinInternalParse extends BruinCommand {
           if (timeout) { clearTimeout(timeout); }
         });
 
-        const result = JSON.stringify({ type: "pipelineConfig", ...pipelineMeta, filePath });
+        // Only trim the panel payload: the language server also consumes the
+        // parser's full raw assets for completion details and go-to-definition.
+        const { assets, column_lineage: columnLineage, ...raw } = pipelineMeta.raw;
+        if (Array.isArray(assets)) {
+          raw.assets = assets.map(({ name, tags }: any) => ({ name, tags }));
+        }
+        const result = JSON.stringify({ type: "pipelineConfig", ...pipelineMeta, raw, filePath });
         this.postMessageToPanels("success", result);
         console.timeEnd("parseAsset");
         return;

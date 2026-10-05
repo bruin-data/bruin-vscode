@@ -452,7 +452,9 @@ const handleMessage = (event: MessageEvent) => {
           const isPipelineFile = fp.endsWith('pipeline.yml') || fp.endsWith('pipeline.yaml');
           if (!isConfig) {
             console.log("🔍 [App.vue] Requesting asset details", isConfig, isPipelineFile);
-            vscode.postMessage({ command: "bruin.getAssetDetails" });
+            if (!message.assetDetailsPending) {
+              vscode.postMessage({ command: "bruin.getAssetDetails" });
+            }
             // Don't request metadata for config files (bruin.yml or pipeline.yml)
             if (!isConfig && !isPipelineFile) {
               console.log("🔍 [App.vue] Requesting asset metadata", message.filePath);

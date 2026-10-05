@@ -4056,6 +4056,25 @@ suite(" Query export Tests", () => {
       sinon.assert.calledWith(parsePipelineConfigStub, filePath);
     });
 
+    test("trims the config panel payload without changing the parser result", async () => {
+      const metadata = {
+        name: "large-pipeline", schedule: "daily", start_date: "2024-01-01",
+        default_connections: { duckdb: "local" }, variables: { region: "eu" },
+        variants: { staging: { variables: { region: "us" } } },
+      };
+      const assets = [{ name: "a", tags: ["daily"], type: "duckdb.sql",
+        definition_file: { path: "/assets/a.sql" }, columns: [{ name: "id" }],
+        executable_file: { content: "SELECT 1" } }];
+      const raw = { ...metadata, assets, column_lineage: { large: "graph" } };
+      parsePipelineConfigStub.resolves({ ...metadata, raw });
+      await bruinInternalParse.parseAsset("path/to/pipeline.yml");
+      const result = JSON.parse(postMessageToPanelsStub.firstCall.args[1]);
+      assert.deepStrictEqual(result.raw, { ...metadata, assets: [{ name: "a", tags: ["daily"] }] });
+      assert.deepStrictEqual(result.variables, metadata.variables);
+      assert.strictEqual(raw.assets, assets);
+      assert.strictEqual(raw.assets[0].definition_file.path, "/assets/a.sql");
+    });
+
     test("should surface pipeline parsing errors", async () => {
       const filePath = "path/to/pipeline.yml";
 
@@ -4212,6 +4231,23 @@ suite(" Query export Tests", () => {
     });
 
     suite("parsePipelineConfig", () => {
+      test("preserves full raw assets for language-server consumers", async () => {
+        const metadata = {
+          name: "large-pipeline", schedule: "daily", start_date: "2024-01-01",
+          default_connections: { duckdb: "local" }, variables: { region: "eu" },
+          variants: { staging: { variables: { region: "us" } } },
+        };
+        const raw = {
+          ...metadata,
+          assets: [{ name: "a", type: "duckdb.sql", definition_file: { path: "/assets/a.sql" }, tags: ["daily"], columns: [{ name: "id" }], upstreams: [], executable_file: { content: "SELECT 1" } }],
+          column_lineage: { large: "graph" },
+        };
+        runStub.resolves(JSON.stringify(raw));
+        const result = await bruinLineageInternalParse.parsePipelineConfig("path/to/pipeline.yml");
+        assert.deepStrictEqual(result.raw, raw);
+        assert.deepStrictEqual(result.variables, metadata.variables);
+      });
+
       test("should parse pipeline config successfully", async () => {
         const filePath = "path/to/pipeline.yml";
         const mockPipelineData = {
@@ -4294,6 +4330,28 @@ suite(" Query export Tests", () => {
     });
 
     suite("parseAssetLineage", () => {
+      test("asset picker requests do not broadcast a lineage update", async () => {
+        const post = sinon.stub(BruinPanel, "postMessage");
+        const assets = [{ id: "a", name: "a", definition_file: { path: "path/to/a.sql" } }];
+        getCurrentPipelinePathStub.resolves("path/to/pipeline");
+        runStub.resolves(JSON.stringify({ assets }));
+        await bruinLineageInternalParse.parseAssetLineage("path/to/a.sql", "BruinPanel");
+        sinon.assert.calledWith(post, "pipeline-assets", { status: "success", message: assets });
+        sinon.assert.notCalled(updateLineageDataStub);
+        assert.ok(!runStub.firstCall.args[0].includes("-c"));
+      });
+
+      test("pipeline lineage sends one complete serialized pipeline", async () => {
+        const raw = JSON.stringify({ name: "pipeline", assets: [{ name: "a", columns: [{ name: "id" }] }] });
+        runStub.resolves(raw);
+        await bruinLineageInternalParse.parseAssetLineage("path/to/pipeline.yml");
+        sinon.assert.calledOnce(updateLineageDataStub);
+        const payload = updateLineageDataStub.firstCall.args[0];
+        assert.strictEqual(payload.message.pipeline, raw);
+        assert.strictEqual(payload.message.isPipelineView, true);
+        assert.ok(!("pipelineData" in payload.message));
+      });
+
       test("should parse asset lineage successfully", async () => {
         const filePath = "path/to/asset.sql";
         const pipelinePath = "path/to/pipeline.yml";

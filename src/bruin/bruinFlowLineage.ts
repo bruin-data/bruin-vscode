@@ -119,6 +119,8 @@ export class BruinLineageInternalParse extends BruinCommand {
             message: pipelineData.column_lineage,
           });
         }
+        // A picker request must not rebuild or replace the lineage panel.
+        return;
       }
       
       // Helper function to check for column data
@@ -133,7 +135,6 @@ export class BruinLineageInternalParse extends BruinCommand {
       if (isPipelineFile) {
         // For pipeline.yml files, show full pipeline lineage with column data
         const lineageData: any = {
-          pipelineData: pipelineData,
           name: pipelineData.name || "Pipeline",
           pipeline: result,
           isPipelineView: true,
