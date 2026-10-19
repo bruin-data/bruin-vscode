@@ -498,7 +498,7 @@ function openBruinMcpDocs() {
 function openCloudTokenPage() {
   vscode.postMessage({
     command: "bruin.openDocumentationLink",
-    payload: "https://cloud.getbruin.com/user/api-tokens",
+    payload: "https://cloud.getbruin.com/user/api-tokens?utm_source=vscode&utm_medium=app&utm_campaign=vscode&utm_content=mcp-integrations",
   });
 }
 
