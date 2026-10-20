@@ -132,6 +132,51 @@ describe("IngestrAssetDisplay connection types per environment", () => {
     expect(setup(wrapper).destinationConnectionLabel).toBe("warehouse (google_cloud_platform)");
   });
 
+  it("reloads source tables when the source type changes with the environment", async () => {
+    const { vscode } = await import("@/utilities/vscode");
+    const wrapper = mount(IngestrAssetDisplay, {
+      props: { parameters: { source_connection: "warehouse", source_table: "t" }, environment: "default", columns: [] },
+    });
+
+    setup(wrapper).handleConnectionsList(connectionsList);
+    setup(wrapper).availableSourceTables = ["postgres_table"];
+    vi.mocked(vscode.postMessage).mockClear();
+
+    await wrapper.setProps({ environment: "prod" });
+
+    expect(setup(wrapper).availableSourceTables).toEqual([]);
+    expect(vscode.postMessage).toHaveBeenCalledWith({
+      command: "bruin.getIngestrSourceTables",
+      payload: { sourceType: "google_cloud_platform" },
+    });
+  });
+
+  it("keeps source tables when the source type is the same in the new environment", async () => {
+    const { vscode } = await import("@/utilities/vscode");
+    const sameType = {
+      status: "success",
+      message: {
+        selected_environment_name: "default",
+        environments: {
+          default: { connections: { athena: [{ name: "lake" }] } },
+          prod: { connections: { athena: [{ name: "lake" }] } },
+        },
+      },
+    };
+    const wrapper = mount(IngestrAssetDisplay, {
+      props: { parameters: { source_connection: "lake", source_table: "t" }, environment: "default", columns: [] },
+    });
+
+    setup(wrapper).handleConnectionsList(sameType);
+    setup(wrapper).availableSourceTables = ["events"];
+    vi.mocked(vscode.postMessage).mockClear();
+
+    await wrapper.setProps({ environment: "prod" });
+
+    expect(setup(wrapper).availableSourceTables).toEqual(["events"]);
+    expect(vscode.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ command: "bruin.getIngestrSourceTables" }));
+  });
+
   it("falls back to the config's environment when none is selected", () => {
     const wrapper = mount(IngestrAssetDisplay, {
       props: { parameters: { ...sourceParams }, connection: "warehouse", columns: [] },

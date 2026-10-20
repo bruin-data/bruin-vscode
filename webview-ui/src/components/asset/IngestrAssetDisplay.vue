@@ -610,8 +610,19 @@ const handleConnectionsList = (payload: any) => {
 watch(
   () => props.environment,
   () => {
-    if (lastConnectionsData.value) {
-      availableConnections.value = parseConnections(lastConnectionsData.value);
+    if (!lastConnectionsData.value) {
+      return;
+    }
+
+    const sourceConnection = localParameters.value.source_connection;
+    const previousSourceType = sourceConnection ? getConnectionType(sourceConnection) : null;
+    availableConnections.value = parseConnections(lastConnectionsData.value);
+
+    // Tables depend on the source type, which may differ in the new environment.
+    if (sourceConnection && getConnectionType(sourceConnection) !== previousSourceType) {
+      availableSourceTables.value = [];
+      isLoadingSourceTables.value = false;
+      fetchSourceTables(sourceConnection);
     }
   }
 );
