@@ -95,6 +95,54 @@ describe("IngestrAssetDisplay destination inferred from the connection", () => {
   });
 });
 
+describe("IngestrAssetDisplay connection types per environment", () => {
+  // `bruin connections list -o json` returns every environment.
+  const connectionsList = {
+    status: "success",
+    message: {
+      default_environment_name: "default",
+      selected_environment_name: "default",
+      environments: {
+        default: { connections: { postgres: [{ name: "warehouse" }] } },
+        prod: { connections: { google_cloud_platform: [{ name: "warehouse" }] } },
+      },
+    },
+  };
+
+  it("uses the environment selected for runs", () => {
+    const wrapper = mount(IngestrAssetDisplay, {
+      props: { parameters: { ...sourceParams }, connection: "warehouse", environment: "prod", columns: [] },
+    });
+
+    setup(wrapper).handleConnectionsList(connectionsList);
+
+    expect(setup(wrapper).destinationConnectionLabel).toBe("warehouse (google_cloud_platform)");
+  });
+
+  it("follows a change of the selected environment", async () => {
+    const wrapper = mount(IngestrAssetDisplay, {
+      props: { parameters: { ...sourceParams }, connection: "warehouse", environment: "default", columns: [] },
+    });
+
+    setup(wrapper).handleConnectionsList(connectionsList);
+    expect(setup(wrapper).destinationConnectionLabel).toBe("warehouse (postgres)");
+
+    await wrapper.setProps({ environment: "prod" });
+
+    expect(setup(wrapper).destinationConnectionLabel).toBe("warehouse (google_cloud_platform)");
+  });
+
+  it("falls back to the config's environment when none is selected", () => {
+    const wrapper = mount(IngestrAssetDisplay, {
+      props: { parameters: { ...sourceParams }, connection: "warehouse", columns: [] },
+    });
+
+    setup(wrapper).handleConnectionsList(connectionsList);
+
+    expect(setup(wrapper).destinationConnectionLabel).toBe("warehouse (postgres)");
+  });
+});
+
 describe("parseAssetDetails", () => {
   it("passes the asset connection through", () => {
     const details = parseAssetDetails({ asset: { name: "a", type: "ingestr", connection: "bigquery-prod" } });

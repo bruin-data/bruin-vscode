@@ -313,6 +313,7 @@ import { vscode } from '@/utilities/vscode';
 const props = defineProps<{
   parameters: Partial<IngestrParameters>;
   connection?: string;
+  environment?: string;
   columns: any[];
 }>();
 
@@ -590,51 +591,70 @@ const handleMessage = (event: MessageEvent) => {
   }
 };
 
+// Kept so the list can be re-read when the selected environment changes.
+const lastConnectionsData = ref<any>(null);
+
 const handleConnectionsList = (payload: any) => {
   if (payload.status === "success" && payload.message) {
-    const data = payload.message;
-    const parsedConnections: Array<{ name: string; type: string }> = [];
-
-    if (Array.isArray(data)) {
-      data.forEach((conn: any) => {
-        if (conn.name && conn.type) {
-          parsedConnections.push({ name: conn.name, type: conn.type });
-        }
-      });
-    } else if (data && data.environments) {
-      const envName = data.selected_environment_name || data.default_environment_name || Object.keys(data.environments)[0];
-      const envConnections = data.environments[envName]?.connections || {};
-
-      Object.keys(envConnections).forEach((connectionType: string) => {
-        const connectionsOfType = envConnections[connectionType];
-        if (Array.isArray(connectionsOfType)) {
-          connectionsOfType.forEach((conn: any) => {
-            if (conn.name) {
-              parsedConnections.push({ name: conn.name, type: connectionType });
-            }
-          });
-        }
-      });
-    } else if (data && data.selected_environment?.connections) {
-      const envConnections = data.selected_environment.connections;
-      Object.keys(envConnections).forEach((connectionType: string) => {
-        const connectionsOfType = envConnections[connectionType];
-        if (Array.isArray(connectionsOfType)) {
-          connectionsOfType.forEach((conn: any) => {
-            if (conn.name) {
-              parsedConnections.push({ name: conn.name, type: connectionType });
-            }
-          });
-        }
-      });
-    }
-
-    availableConnections.value = parsedConnections;
+    lastConnectionsData.value = payload.message;
+    availableConnections.value = parseConnections(payload.message);
 
     if (localParameters.value.source_connection && availableSourceTables.value.length === 0) {
       fetchSourceTables(localParameters.value.source_connection);
     }
   }
+};
+
+// The same connection name can have a different type in each environment, so follow the
+// environment selected for runs. The response already holds every environment.
+watch(
+  () => props.environment,
+  () => {
+    if (lastConnectionsData.value) {
+      availableConnections.value = parseConnections(lastConnectionsData.value);
+    }
+  }
+);
+
+const parseConnections = (data: any): Array<{ name: string; type: string }> => {
+  const parsedConnections: Array<{ name: string; type: string }> = [];
+
+  if (Array.isArray(data)) {
+    data.forEach((conn: any) => {
+      if (conn.name && conn.type) {
+        parsedConnections.push({ name: conn.name, type: conn.type });
+      }
+    });
+  } else if (data && data.environments) {
+    const envName = (props.environment && data.environments[props.environment] ? props.environment : null)
+      || data.selected_environment_name || data.default_environment_name || Object.keys(data.environments)[0];
+    const envConnections = data.environments[envName]?.connections || {};
+
+    Object.keys(envConnections).forEach((connectionType: string) => {
+      const connectionsOfType = envConnections[connectionType];
+      if (Array.isArray(connectionsOfType)) {
+        connectionsOfType.forEach((conn: any) => {
+          if (conn.name) {
+            parsedConnections.push({ name: conn.name, type: connectionType });
+          }
+        });
+      }
+    });
+  } else if (data && data.selected_environment?.connections) {
+    const envConnections = data.selected_environment.connections;
+    Object.keys(envConnections).forEach((connectionType: string) => {
+      const connectionsOfType = envConnections[connectionType];
+      if (Array.isArray(connectionsOfType)) {
+        connectionsOfType.forEach((conn: any) => {
+          if (conn.name) {
+            parsedConnections.push({ name: conn.name, type: connectionType });
+          }
+        });
+      }
+    });
+  }
+
+  return parsedConnections;
 };
 
 const handleIngestrSources = (payload: any) => {
