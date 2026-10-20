@@ -177,6 +177,20 @@ describe("IngestrAssetDisplay connection types per environment", () => {
     expect(vscode.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ command: "bruin.getIngestrSourceTables" }));
   });
 
+  it("ignores a late reply for the previous source type", async () => {
+    const wrapper = mount(IngestrAssetDisplay, {
+      props: { parameters: { source_connection: "warehouse", source_table: "t" }, environment: "default", columns: [] },
+    });
+
+    setup(wrapper).handleConnectionsList(connectionsList);
+    await wrapper.setProps({ environment: "prod" });
+
+    setup(wrapper).handleIngestrSources({ status: "success", message: ["bq_table"], sourceType: "google_cloud_platform" });
+    setup(wrapper).handleIngestrSources({ status: "success", message: ["pg_table"], sourceType: "postgres" });
+
+    expect(setup(wrapper).availableSourceTables).toEqual(["bq_table"]);
+  });
+
   it("falls back to the config's environment when none is selected", () => {
     const wrapper = mount(IngestrAssetDisplay, {
       props: { parameters: { ...sourceParams }, connection: "warehouse", columns: [] },

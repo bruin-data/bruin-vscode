@@ -668,7 +668,13 @@ const parseConnections = (data: any): Array<{ name: string; type: string }> => {
   return parsedConnections;
 };
 
+// The source type of the latest table request; replies to earlier requests are dropped.
+const requestedSourceType = ref<string | null>(null);
+
 const handleIngestrSources = (payload: any) => {
+  if (payload.sourceType && payload.sourceType !== requestedSourceType.value) {
+    return;
+  }
   isLoadingSourceTables.value = false;
   if (payload.status === "success" && payload.message) {
     if (Array.isArray(payload.message)) {
@@ -728,6 +734,7 @@ const destinationConnectionLabel = computed(() => {
 const fetchSourceTables = (connectionName: string) => {
   const sourceType = getConnectionType(connectionName);
   if (sourceType) {
+    requestedSourceType.value = sourceType;
     isLoadingSourceTables.value = true;
     availableSourceTables.value = [];
     isCustomSourceTable.value = false;
