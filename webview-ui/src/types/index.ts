@@ -225,7 +225,8 @@ export interface IngestrParameters {
   source?: string;
   source_connection: string;
   source_table: string;
-  destination: string;
+  destination?: string;
+  destination_connection?: string;
   incremental_strategy?: string;
   incremental_key?: string;
   full_refresh?: boolean;

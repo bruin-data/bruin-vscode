@@ -114,9 +114,9 @@
             <span
               id="destination-label"
               class="text-2xs min-w-[140px] cursor-help"
-              :class="!localParameters.destination ? 'text-errorForeground' : 'text-editor-fg opacity-70'"
-              title="The target platform where data will be loaded (e.g., Snowflake, BigQuery, Postgres)."
-            >Destination Platform: <span class="text-errorForeground">*</span></span>
+              :class="isDestinationMissing ? 'text-errorForeground' : 'text-editor-fg opacity-70'"
+              title="The target platform where data will be loaded (e.g., Snowflake, BigQuery, Postgres). Optional when the asset sets a connection: the platform comes from the connection type."
+            >Destination Platform: <span v-if="!isDestinationFromConnection" class="text-errorForeground">*</span></span>
             <div
               id="destination-field"
               class="flex-1 text-xs text-editor-fg"
@@ -137,8 +137,14 @@
                   {{ dest.label }}
                 </option>
               </select>
-              <span v-else id="destination-value" class="block" :class="{ 'italic opacity-70': !localParameters.destination, 'text-errorForeground': !localParameters.destination }">
-                {{ localParameters.destination ? destinationDisplayName(localParameters.destination) : 'Required: Click to set destination' }}
+              <span v-else id="destination-value" class="block" :class="{ 'italic opacity-70': !localParameters.destination, 'text-errorForeground': isDestinationMissing }">
+                {{
+                  localParameters.destination
+                    ? destinationDisplayName(localParameters.destination)
+                    : isDestinationFromConnection
+                      ? `From connection: ${destinationConnectionLabel}`
+                      : 'Required: Click to set destination'
+                }}
               </span>
             </div>
           </div>
@@ -271,6 +277,10 @@
               <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Destination:</span>
               <span class="text-xs text-editor-fg">{{ displayParams.destination }}</span>
             </div>
+            <div v-else-if="isDestinationFromConnection" id="destination-from-connection" class="flex items-center gap-2">
+              <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Destination:</span>
+              <span class="text-xs text-editor-fg">From connection: {{ destinationConnectionLabel }}</span>
+            </div>
             <div v-if="displayParams.incremental_strategy" class="flex items-center gap-2">
               <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Incremental Strategy:</span>
               <span class="text-xs text-editor-fg">{{ displayParams.incremental_strategy }}</span>
@@ -285,7 +295,7 @@
             </div>
 
             <!-- Empty state -->
-            <div v-if="!displayParams.source_connection && !displayParams.source_table && !displayParams.destination && !displayParams.full_refresh" class="text-xs text-editor-fg opacity-60 italic py-2 text-center">
+            <div v-if="!displayParams.source_connection && !displayParams.source_table && !displayParams.destination && !isDestinationFromConnection && !displayParams.full_refresh" class="text-xs text-editor-fg opacity-60 italic py-2 text-center">
               No parameters configured
             </div>
           </div>
@@ -302,6 +312,7 @@ import { vscode } from '@/utilities/vscode';
 
 const props = defineProps<{
   parameters: Partial<IngestrParameters>;
+  connection?: string;
   columns: any[];
 }>();
 
@@ -673,6 +684,15 @@ const getConnectionType = (connectionName: string): string | null => {
   const connection = availableConnections.value.find(conn => conn.name === connectionName);
   return connection ? connection.type : null;
 };
+
+// Without a `destination`, Bruin writes to the asset's connection and takes the platform from its type.
+const destinationConnection = computed(() => props.connection || props.parameters?.destination_connection || '');
+const isDestinationFromConnection = computed(() => !localParameters.value.destination && !!destinationConnection.value);
+const isDestinationMissing = computed(() => !localParameters.value.destination && !destinationConnection.value);
+const destinationConnectionLabel = computed(() => {
+  const type = getConnectionType(destinationConnection.value);
+  return type ? `${destinationConnection.value} (${type})` : destinationConnection.value;
+});
 
 const fetchSourceTables = (connectionName: string) => {
   const sourceType = getConnectionType(connectionName);

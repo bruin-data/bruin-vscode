@@ -232,6 +232,7 @@ export const parseAssetDetails = (data: string | object) => {
     id: asset.id || "undefined",
     name: asset.name || pipeline.name || "undefined",
     type: asset.type || (asset.external ? "external" : undefined),
+    connection: asset.connection || undefined,
     schedule: asset.schedule || undefined,
     description: asset.description || undefined,
     owner: asset.owner || undefined,
