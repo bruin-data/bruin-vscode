@@ -733,8 +733,9 @@ const destinationConnectionLabel = computed(() => {
 
 const fetchSourceTables = (connectionName: string) => {
   const sourceType = getConnectionType(connectionName);
+  // Also reset when no request is sent, so a reply for the previous type is dropped.
+  requestedSourceType.value = sourceType;
   if (sourceType) {
-    requestedSourceType.value = sourceType;
     isLoadingSourceTables.value = true;
     availableSourceTables.value = [];
     isCustomSourceTable.value = false;
@@ -798,6 +799,7 @@ watch(
         if (sourceConnectionChanged) {
           availableSourceTables.value = [];
           isLoadingSourceTables.value = false;
+          requestedSourceType.value = null;
         }
       }
 

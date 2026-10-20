@@ -191,6 +191,40 @@ describe("IngestrAssetDisplay connection types per environment", () => {
     expect(setup(wrapper).availableSourceTables).toEqual(["bq_table"]);
   });
 
+  it("ignores a late reply when the source connection is missing in the new environment", async () => {
+    const missingInProd = {
+      status: "success",
+      message: {
+        selected_environment_name: "default",
+        environments: {
+          default: { connections: { postgres: [{ name: "warehouse" }] } },
+          prod: { connections: {} },
+        },
+      },
+    };
+    const wrapper = mount(IngestrAssetDisplay, {
+      props: { parameters: { source_connection: "warehouse", source_table: "t" }, environment: "default", columns: [] },
+    });
+
+    setup(wrapper).handleConnectionsList(missingInProd);
+    await wrapper.setProps({ environment: "prod" });
+    setup(wrapper).handleIngestrSources({ status: "success", message: ["pg_table"], sourceType: "postgres" });
+
+    expect(setup(wrapper).availableSourceTables).toEqual([]);
+  });
+
+  it("ignores a late reply after the source connection changes outside the panel", async () => {
+    const wrapper = mount(IngestrAssetDisplay, {
+      props: { parameters: { source_connection: "warehouse", source_table: "t" }, environment: "default", columns: [] },
+    });
+
+    setup(wrapper).handleConnectionsList(connectionsList);
+    await wrapper.setProps({ parameters: { source_connection: "other", source_table: "t" } });
+    setup(wrapper).handleIngestrSources({ status: "success", message: ["pg_table"], sourceType: "postgres" });
+
+    expect(setup(wrapper).availableSourceTables).toEqual([]);
+  });
+
   it("falls back to the config's environment when none is selected", () => {
     const wrapper = mount(IngestrAssetDisplay, {
       props: { parameters: { ...sourceParams }, connection: "warehouse", columns: [] },
