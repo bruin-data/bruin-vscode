@@ -1,4 +1,7 @@
 # Changelog
+## [0.84.8]
+- Ingestr assets that set a `connection` or `destination_connection` now show the destination as coming from that connection instead of "Required".
+
 ## [0.84.7]
 - Faster asset panel and lineage for large pipelines, and fixed the lineage graph clipping or jumping after it loads.
 
