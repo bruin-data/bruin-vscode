@@ -89,6 +89,7 @@ After installing, run the **Bruin: Show Getting Started Walkthrough** command fr
 ## Release Notes
 
 ### Recent Update
+- **0.84.8**: Ingestr assets that set a `connection` or `destination_connection` now show the destination as coming from that connection instead of "Required".
 - **0.84.7**: Faster asset panel and lineage for large pipelines, and fixed the lineage graph clipping or jumping after it loads.
 - **0.84.6**: Fixed the Table Diff panel showing a raw `{"error": ...}` JSON blob instead of the actual error message when a diff fails.
 - **0.84.5**: Fixed unreadable header text when sorting a column in the query preview.
