@@ -114,9 +114,9 @@
             <span
               id="destination-label"
               class="text-2xs min-w-[140px] cursor-help"
-              :class="!localParameters.destination ? 'text-errorForeground' : 'text-editor-fg opacity-70'"
-              title="The target platform where data will be loaded (e.g., Snowflake, BigQuery, Postgres)."
-            >Destination Platform: <span class="text-errorForeground">*</span></span>
+              :class="isDestinationMissing ? 'text-errorForeground' : 'text-editor-fg opacity-70'"
+              title="The target platform where data will be loaded (e.g., Snowflake, BigQuery, Postgres). Optional when the asset sets a connection: the platform comes from the connection type."
+            >Destination Platform: <span v-if="!isDestinationFromConnection" class="text-errorForeground">*</span></span>
             <div
               id="destination-field"
               class="flex-1 text-xs text-editor-fg"
@@ -137,8 +137,14 @@
                   {{ dest.label }}
                 </option>
               </select>
-              <span v-else id="destination-value" class="block" :class="{ 'italic opacity-70': !localParameters.destination, 'text-errorForeground': !localParameters.destination }">
-                {{ localParameters.destination ? destinationDisplayName(localParameters.destination) : 'Required: Click to set destination' }}
+              <span v-else id="destination-value" class="block" :class="{ 'italic opacity-70': !localParameters.destination, 'text-errorForeground': isDestinationMissing }">
+                {{
+                  localParameters.destination
+                    ? destinationDisplayName(localParameters.destination)
+                    : isDestinationFromConnection
+                      ? `From connection: ${destinationConnectionLabel}`
+                      : 'Required: Click to set destination'
+                }}
               </span>
             </div>
           </div>
@@ -271,6 +277,10 @@
               <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Destination:</span>
               <span class="text-xs text-editor-fg">{{ displayParams.destination }}</span>
             </div>
+            <div v-else-if="isDestinationFromConnection" id="destination-from-connection" class="flex items-center gap-2">
+              <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Destination:</span>
+              <span class="text-xs text-editor-fg">From connection: {{ destinationConnectionLabel }}</span>
+            </div>
             <div v-if="displayParams.incremental_strategy" class="flex items-center gap-2">
               <span class="text-2xs text-editor-fg opacity-70 min-w-[140px]">Incremental Strategy:</span>
               <span class="text-xs text-editor-fg">{{ displayParams.incremental_strategy }}</span>
@@ -285,7 +295,7 @@
             </div>
 
             <!-- Empty state -->
-            <div v-if="!displayParams.source_connection && !displayParams.source_table && !displayParams.destination && !displayParams.full_refresh" class="text-xs text-editor-fg opacity-60 italic py-2 text-center">
+            <div v-if="!displayParams.source_connection && !displayParams.source_table && !displayParams.destination && !isDestinationFromConnection && !displayParams.full_refresh" class="text-xs text-editor-fg opacity-60 italic py-2 text-center">
               No parameters configured
             </div>
           </div>
@@ -302,6 +312,8 @@ import { vscode } from '@/utilities/vscode';
 
 const props = defineProps<{
   parameters: Partial<IngestrParameters>;
+  connection?: string;
+  environment?: string;
   columns: any[];
 }>();
 
@@ -579,46 +591,13 @@ const handleMessage = (event: MessageEvent) => {
   }
 };
 
+// Kept so the list can be re-read when the selected environment changes.
+const lastConnectionsData = ref<any>(null);
+
 const handleConnectionsList = (payload: any) => {
   if (payload.status === "success" && payload.message) {
-    const data = payload.message;
-    const parsedConnections: Array<{ name: string; type: string }> = [];
-
-    if (Array.isArray(data)) {
-      data.forEach((conn: any) => {
-        if (conn.name && conn.type) {
-          parsedConnections.push({ name: conn.name, type: conn.type });
-        }
-      });
-    } else if (data && data.environments) {
-      const envName = data.selected_environment_name || data.default_environment_name || Object.keys(data.environments)[0];
-      const envConnections = data.environments[envName]?.connections || {};
-
-      Object.keys(envConnections).forEach((connectionType: string) => {
-        const connectionsOfType = envConnections[connectionType];
-        if (Array.isArray(connectionsOfType)) {
-          connectionsOfType.forEach((conn: any) => {
-            if (conn.name) {
-              parsedConnections.push({ name: conn.name, type: connectionType });
-            }
-          });
-        }
-      });
-    } else if (data && data.selected_environment?.connections) {
-      const envConnections = data.selected_environment.connections;
-      Object.keys(envConnections).forEach((connectionType: string) => {
-        const connectionsOfType = envConnections[connectionType];
-        if (Array.isArray(connectionsOfType)) {
-          connectionsOfType.forEach((conn: any) => {
-            if (conn.name) {
-              parsedConnections.push({ name: conn.name, type: connectionType });
-            }
-          });
-        }
-      });
-    }
-
-    availableConnections.value = parsedConnections;
+    lastConnectionsData.value = payload.message;
+    availableConnections.value = parseConnections(payload.message);
 
     if (localParameters.value.source_connection && availableSourceTables.value.length === 0) {
       fetchSourceTables(localParameters.value.source_connection);
@@ -626,7 +605,76 @@ const handleConnectionsList = (payload: any) => {
   }
 };
 
+// The same connection name can have a different type in each environment, so follow the
+// environment selected for runs. The response already holds every environment.
+watch(
+  () => props.environment,
+  () => {
+    if (!lastConnectionsData.value) {
+      return;
+    }
+
+    const sourceConnection = localParameters.value.source_connection;
+    const previousSourceType = sourceConnection ? getConnectionType(sourceConnection) : null;
+    availableConnections.value = parseConnections(lastConnectionsData.value);
+
+    // Tables depend on the source type, which may differ in the new environment.
+    if (sourceConnection && getConnectionType(sourceConnection) !== previousSourceType) {
+      availableSourceTables.value = [];
+      isLoadingSourceTables.value = false;
+      fetchSourceTables(sourceConnection);
+    }
+  }
+);
+
+const parseConnections = (data: any): Array<{ name: string; type: string }> => {
+  const parsedConnections: Array<{ name: string; type: string }> = [];
+
+  if (Array.isArray(data)) {
+    data.forEach((conn: any) => {
+      if (conn.name && conn.type) {
+        parsedConnections.push({ name: conn.name, type: conn.type });
+      }
+    });
+  } else if (data && data.environments) {
+    const envName = (props.environment && data.environments[props.environment] ? props.environment : null)
+      || data.selected_environment_name || data.default_environment_name || Object.keys(data.environments)[0];
+    const envConnections = data.environments[envName]?.connections || {};
+
+    Object.keys(envConnections).forEach((connectionType: string) => {
+      const connectionsOfType = envConnections[connectionType];
+      if (Array.isArray(connectionsOfType)) {
+        connectionsOfType.forEach((conn: any) => {
+          if (conn.name) {
+            parsedConnections.push({ name: conn.name, type: connectionType });
+          }
+        });
+      }
+    });
+  } else if (data && data.selected_environment?.connections) {
+    const envConnections = data.selected_environment.connections;
+    Object.keys(envConnections).forEach((connectionType: string) => {
+      const connectionsOfType = envConnections[connectionType];
+      if (Array.isArray(connectionsOfType)) {
+        connectionsOfType.forEach((conn: any) => {
+          if (conn.name) {
+            parsedConnections.push({ name: conn.name, type: connectionType });
+          }
+        });
+      }
+    });
+  }
+
+  return parsedConnections;
+};
+
+// The source type of the latest table request; replies to earlier requests are dropped.
+const requestedSourceType = ref<string | null>(null);
+
 const handleIngestrSources = (payload: any) => {
+  if (payload.sourceType && payload.sourceType !== requestedSourceType.value) {
+    return;
+  }
   isLoadingSourceTables.value = false;
   if (payload.status === "success" && payload.message) {
     if (Array.isArray(payload.message)) {
@@ -674,8 +722,19 @@ const getConnectionType = (connectionName: string): string | null => {
   return connection ? connection.type : null;
 };
 
+// Without a `destination`, Bruin writes to the asset's connection and takes the platform from its type.
+const destinationConnection = computed(() => props.connection || props.parameters?.destination_connection || '');
+const isDestinationFromConnection = computed(() => !localParameters.value.destination && !!destinationConnection.value);
+const isDestinationMissing = computed(() => !localParameters.value.destination && !destinationConnection.value);
+const destinationConnectionLabel = computed(() => {
+  const type = getConnectionType(destinationConnection.value);
+  return type ? `${destinationConnection.value} (${type})` : destinationConnection.value;
+});
+
 const fetchSourceTables = (connectionName: string) => {
   const sourceType = getConnectionType(connectionName);
+  // Also reset when no request is sent, so a reply for the previous type is dropped.
+  requestedSourceType.value = sourceType;
   if (sourceType) {
     isLoadingSourceTables.value = true;
     availableSourceTables.value = [];
@@ -740,6 +799,7 @@ watch(
         if (sourceConnectionChanged) {
           availableSourceTables.value = [];
           isLoadingSourceTables.value = false;
+          requestedSourceType.value = null;
         }
       }
 

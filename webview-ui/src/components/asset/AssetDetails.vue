@@ -86,6 +86,7 @@
         :hasIntervalModifiers="hasIntervalModifiers"
         :intervalModifiers="props.intervalModifiers"
         :assetType="props.type"
+        :connection="props.connection"
         :parameters="parameters"
         :columns="props.columns || []"
         :tags="props.tags || []"
@@ -114,6 +115,7 @@ const props = defineProps<{
   name: string;
   description: string;
   type: string;
+  connection?: string;
   owner: string;
   startDate: string;
   id: string;

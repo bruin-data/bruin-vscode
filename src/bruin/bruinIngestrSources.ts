@@ -25,14 +25,14 @@ export class BruinIngestrSources extends BruinCommand {
         const response = JSON.parse(result);
         const tables = this.extractTableNames(response);
         console.log("Extracted tables:", tables);
-        this.postMessageToPanels("success", tables);
+        this.postMessageToPanels("success", tables, sourceType);
       } catch (parseError) {
         console.error("Error parsing ingestr-sources result:", parseError);
         const sources = result.trim().split('\n').filter(Boolean);
         if (sources.length > 0) {
-          this.postMessageToPanels("success", sources);
+          this.postMessageToPanels("success", sources, sourceType);
         } else {
-          this.postMessageToPanels("error", "No tables found or invalid response");
+          this.postMessageToPanels("error", "No tables found or invalid response", sourceType);
         }
       }
     } catch (error) {
@@ -43,7 +43,7 @@ export class BruinIngestrSources extends BruinCommand {
           errorString.includes("unknown command") ||
           errorString.includes("not defined");
       
-      this.postMessageToPanels(isUnsupportedCommand ? "unsupported" : "error", null);
+      this.postMessageToPanels(isUnsupportedCommand ? "unsupported" : "error", null, sourceType);
     }
   }
 
@@ -61,7 +61,8 @@ export class BruinIngestrSources extends BruinCommand {
     return tables;
   }
 
-  private postMessageToPanels(status: string, message: string | any) {
-    BruinPanel.postMessage("ingestr-sources-message", { status, message });
+  // sourceType lets the panel drop replies to requests it has since replaced.
+  private postMessageToPanels(status: string, message: string | any, sourceType: string) {
+    BruinPanel.postMessage("ingestr-sources-message", { status, message, sourceType });
   }
 }
