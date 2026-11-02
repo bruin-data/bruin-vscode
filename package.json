@@ -541,7 +541,8 @@
     "axios": "^1.15.2",
     "fast-uri": "^3.1.2",
     "tmp": "^0.2.7",
-    "qs": "^6.15.2"
+    "qs": "^6.15.2",
+    "@azure/msal-node": "^7.1.0"
   },
   "dependencies": {
     "@rudderstack/analytics-js": "^3.11.15",
