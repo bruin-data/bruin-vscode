@@ -61,4 +61,45 @@ suite("Custom check query ranges", () => {
 
     assert.deepStrictEqual(inlineSpans, [{ line: 4, start: 11, end: 19 }]);
   });
+
+  test("comment-only lines don't end the custom_checks section", () => {
+    const text = [
+      "custom_checks:",
+      "- query: SELECT 1",
+      "# another check",
+      "- query: SELECT 2",
+      "  # indented comment",
+      "- name: third",
+      "  query: SELECT 3",
+    ].join("\n");
+
+    const { inlineSpans } = findCustomCheckQueries(text, "yaml");
+
+    assert.deepStrictEqual(
+      inlineSpans.map((span) => span.line),
+      [1, 3, 6]
+    );
+  });
+
+  test("ignores custom_checks examples inside a top-level block value", () => {
+    const text = [
+      "description: |",
+      "  custom_checks:",
+      "  - query: SELECT 1",
+      "name: raw.customers",
+    ].join("\n");
+
+    const { blockLines, inlineSpans } = findCustomCheckQueries(text, "yaml");
+
+    assert.deepStrictEqual(blockLines, []);
+    assert.deepStrictEqual(inlineSpans, []);
+  });
+
+  test("treats BigQuery assets like SQL assets", () => {
+    const text = ["/* @bruin", "custom_checks:", "  - query: SELECT 1", "@bruin */", "query: SELECT 2"].join("\n");
+
+    const { inlineSpans } = findCustomCheckQueries(text, "sql-bigquery");
+
+    assert.deepStrictEqual(inlineSpans, [{ line: 2, start: 11, end: 19 }]);
+  });
 });

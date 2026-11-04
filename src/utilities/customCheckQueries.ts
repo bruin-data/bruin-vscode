@@ -11,9 +11,12 @@ const CUSTOM_CHECKS_KEY = /^([ \t]*)custom_checks[ \t]*:(?=[ \t]|$)/;
 const ENTRY_PREFIX = /^[ \t]*(-[ \t]+)?/;
 const QUERY_KEY = /^[ \t]*(-[ \t]+)?query[ \t]*:(?=[ \t]|$)/;
 const BLOCK_SCALAR_HEADER = /^[ \t]*[|>][1-9+-]*[ \t]*(#.*)?$/;
+const BLOCK_SCALAR_ENTRY = /:[ \t]+[|>][1-9+-]*[ \t]*(#.*)?$/;
+const SQL_LANGUAGES = ["sql", "sql-bigquery"];
 
 const indentOf = (line: string) => line.length - line.trimStart().length;
 const isBlank = (line: string) => line.trim() === "";
+const isComment = (line: string) => line.trimStart().startsWith("#");
 
 /**
  * Finds the SQL of every `custom_checks[].query` in an asset. For SQL and Python assets only
@@ -25,9 +28,10 @@ export const findCustomCheckQueries = (text: string, languageId: string): Custom
 
   let from = 0;
   let to = lines.length;
-  if (languageId === "sql" || languageId === "python") {
-    const start = languageId === "sql" ? bruinDelimiterRegex.sqlStartDelimiter : bruinDelimiterRegex.pyStartDelimiter;
-    const end = languageId === "sql" ? bruinDelimiterRegex.sqlEndDelimiter : bruinDelimiterRegex.pyEndDelimiter;
+  const isSql = SQL_LANGUAGES.includes(languageId);
+  if (isSql || languageId === "python") {
+    const start = isSql ? bruinDelimiterRegex.sqlStartDelimiter : bruinDelimiterRegex.pyStartDelimiter;
+    const end = isSql ? bruinDelimiterRegex.sqlEndDelimiter : bruinDelimiterRegex.pyEndDelimiter;
     from = lines.findIndex((line) => start.test(line)) + 1;
     if (from === 0) {
       return ranges;
@@ -39,7 +43,8 @@ export const findCustomCheckQueries = (text: string, languageId: string): Custom
   let customChecksIndent = -1;
   for (let i = from; i < to; i++) {
     const line = lines[i];
-    if (isBlank(line)) {
+    // Comment-only lines don't end a section, whatever their indentation.
+    if (isBlank(line) || isComment(line)) {
       continue;
     }
 
@@ -51,15 +56,6 @@ export const findCustomCheckQueries = (text: string, languageId: string): Custom
       }
     }
 
-    const customChecks = CUSTOM_CHECKS_KEY.exec(line);
-    if (customChecks) {
-      customChecksIndent = customChecks[1].length;
-      continue;
-    }
-    if (customChecksIndent === -1) {
-      continue;
-    }
-
     // An entry's value runs on for as long as lines are indented deeper than its key. Skipping
     // those lines keeps e.g. a `query:` line inside a `description: |` block from matching.
     const keyColumn = ENTRY_PREFIX.exec(line)![0].length;
@@ -68,6 +64,20 @@ export const findCustomCheckQueries = (text: string, languageId: string): Custom
       if (!isBlank(lines[j])) {
         last = j;
       }
+    }
+
+    const customChecks = CUSTOM_CHECKS_KEY.exec(line);
+    if (customChecks) {
+      customChecksIndent = customChecks[1].length;
+      continue;
+    }
+    if (customChecksIndent === -1) {
+      // Outside the section only block values need skipping, so prose like a top-level
+      // `description: |` that mentions `custom_checks:` can't open one.
+      if (BLOCK_SCALAR_ENTRY.test(line)) {
+        i = last;
+      }
+      continue;
     }
 
     const query = QUERY_KEY.exec(line);

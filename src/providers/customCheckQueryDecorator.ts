@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { findCustomCheckQueries } from "../utilities/customCheckQueries";
 
-const SUPPORTED_LANGUAGES = ["sql", "python", "yaml"];
+const SUPPORTED_LANGUAGES = ["sql", "sql-bigquery", "python", "yaml"];
 const UPDATE_DELAY_MS = 150;
 
 /**
@@ -20,7 +20,7 @@ export class CustomCheckQueryDecorator implements vscode.Disposable {
     borderRadius: "3px",
   });
   private readonly disposables: vscode.Disposable[] = [];
-  private pendingUpdate: NodeJS.Timeout | undefined;
+  private readonly pendingUpdates = new Map<vscode.TextDocument, NodeJS.Timeout>();
 
   constructor() {
     this.disposables.push(
@@ -33,12 +33,20 @@ export class CustomCheckQueryDecorator implements vscode.Disposable {
   }
 
   private scheduleUpdate(document: vscode.TextDocument) {
-    clearTimeout(this.pendingUpdate);
-    this.pendingUpdate = setTimeout(() => {
-      vscode.window.visibleTextEditors
-        .filter((editor) => editor.document === document)
-        .forEach((editor) => this.decorate(editor));
-    }, UPDATE_DELAY_MS);
+    if (!SUPPORTED_LANGUAGES.includes(document.languageId)) {
+      return;
+    }
+    // One timer per document, so edits elsewhere can't cancel or postpone this refresh.
+    clearTimeout(this.pendingUpdates.get(document));
+    this.pendingUpdates.set(
+      document,
+      setTimeout(() => {
+        this.pendingUpdates.delete(document);
+        vscode.window.visibleTextEditors
+          .filter((editor) => editor.document === document)
+          .forEach((editor) => this.decorate(editor));
+      }, UPDATE_DELAY_MS)
+    );
   }
 
   private decorate(editor: vscode.TextEditor) {
@@ -59,7 +67,7 @@ export class CustomCheckQueryDecorator implements vscode.Disposable {
   }
 
   dispose() {
-    clearTimeout(this.pendingUpdate);
+    this.pendingUpdates.forEach((timeout) => clearTimeout(timeout));
     this.disposables.forEach((d) => d.dispose());
   }
 }

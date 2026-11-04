@@ -8,10 +8,10 @@
     ],
     "repository": {
         "custom-checks": {
-            "comment": "Lasts while lines are indented deeper than `custom_checks:`, are list items at the same indentation, or are blank.",
+            "comment": "Lasts while lines are indented deeper than `custom_checks:`, are list items at the same indentation, or are blank or comment-only.",
             "name": "meta.custom-checks.bruin",
             "begin": "^([ \\t]*)(custom_checks)[ \\t]*(:)(?=[ \\t]|$)",
-            "while": "^(?=\\1[ \\t]|\\1-(?:[ \\t]|$)|[ \\t]*$)",
+            "while": "^(?=\\1[ \\t]|\\1-(?:[ \\t]|$)|[ \\t]*(?:#|$))",
             "beginCaptures": {
                 "2": {
                     "name": "entity.name.tag.yaml"
@@ -26,6 +26,9 @@
                 },
                 {
                     "include": "#query"
+                },
+                {
+                    "include": "#comment-line"
                 },
                 {
                     "include": "#yaml-line"
@@ -136,6 +139,18 @@
                     "include": "source.sql"
                 }
             ]
+        },
+        "comment-line": {
+            "comment": "Comment-only lines, matched on their own so a less-indented comment can't swallow the entries after it.",
+            "match": "^[ \\t]*((#).*)$",
+            "captures": {
+                "1": {
+                    "name": "comment.line.number-sign.yaml"
+                },
+                "2": {
+                    "name": "punctuation.definition.comment.yaml"
+                }
+            }
         },
         "yaml-line": {
             "comment": "Hand every other entry to the YAML grammar, scoped to the entry's own lines (deeper-indented continuations such as `description: |`), so YAML's multi-line rules can't swallow the `query` keys above.",
