@@ -42,8 +42,8 @@
  {
   "RuleID": "generic-api-key",
   "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
-  "StartLine": 41,
-  "EndLine": 41,
+  "StartLine": 42,
+  "EndLine": 42,
   "StartColumn": 8,
   "EndColumn": 48,
   "Match": "WRITE_KEY = \"2q3zybBJRd9ErKIpkTRSdIahQ0C\"",
@@ -57,7 +57,7 @@
   "Date": "",
   "Message": "",
   "Tags": [],
-  "Fingerprint": "src/extension/extension.ts:generic-api-key:41"
+  "Fingerprint": "src/extension/extension.ts:generic-api-key:42"
  },
  {
   "RuleID": "generic-api-key",
