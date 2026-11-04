@@ -1,0 +1,101 @@
+import { bruinDelimiterRegex } from "../constants";
+
+export interface CustomCheckQueryRanges {
+  /** Lines (0-based) holding the body of a block query (`query: |` / `query: >`). */
+  blockLines: number[];
+  /** Single-line spans holding an inline query value (`query: SELECT ...`). */
+  inlineSpans: { line: number; start: number; end: number }[];
+}
+
+const CUSTOM_CHECKS_KEY = /^([ \t]*)custom_checks[ \t]*:(?=[ \t]|$)/;
+const ENTRY_PREFIX = /^[ \t]*(-[ \t]+)?/;
+const QUERY_KEY = /^[ \t]*(-[ \t]+)?query[ \t]*:(?=[ \t]|$)/;
+const BLOCK_SCALAR_HEADER = /^[ \t]*[|>][1-9+-]*[ \t]*(#.*)?$/;
+
+const indentOf = (line: string) => line.length - line.trimStart().length;
+const isBlank = (line: string) => line.trim() === "";
+
+/**
+ * Finds the SQL of every `custom_checks[].query` in an asset. For SQL and Python assets only
+ * the `@bruin` header is searched; any other language is treated as a plain YAML asset.
+ */
+export const findCustomCheckQueries = (text: string, languageId: string): CustomCheckQueryRanges => {
+  const lines = text.split(/\r?\n/);
+  const ranges: CustomCheckQueryRanges = { blockLines: [], inlineSpans: [] };
+
+  let from = 0;
+  let to = lines.length;
+  if (languageId === "sql" || languageId === "python") {
+    const start = languageId === "sql" ? bruinDelimiterRegex.sqlStartDelimiter : bruinDelimiterRegex.pyStartDelimiter;
+    const end = languageId === "sql" ? bruinDelimiterRegex.sqlEndDelimiter : bruinDelimiterRegex.pyEndDelimiter;
+    from = lines.findIndex((line) => start.test(line)) + 1;
+    if (from === 0) {
+      return ranges;
+    }
+    const endOffset = lines.slice(from).findIndex((line) => end.test(line));
+    to = endOffset === -1 ? lines.length : from + endOffset;
+  }
+
+  let customChecksIndent = -1;
+  for (let i = from; i < to; i++) {
+    const line = lines[i];
+    if (isBlank(line)) {
+      continue;
+    }
+
+    if (customChecksIndent !== -1) {
+      const indent = indentOf(line);
+      const isSiblingListItem = indent === customChecksIndent && /^[ \t]*-([ \t]|$)/.test(line);
+      if (indent <= customChecksIndent && !isSiblingListItem) {
+        customChecksIndent = -1;
+      }
+    }
+
+    const customChecks = CUSTOM_CHECKS_KEY.exec(line);
+    if (customChecks) {
+      customChecksIndent = customChecks[1].length;
+      continue;
+    }
+    if (customChecksIndent === -1) {
+      continue;
+    }
+
+    // An entry's value runs on for as long as lines are indented deeper than its key. Skipping
+    // those lines keeps e.g. a `query:` line inside a `description: |` block from matching.
+    const keyColumn = ENTRY_PREFIX.exec(line)![0].length;
+    let last = i;
+    for (let j = i + 1; j < to && (isBlank(lines[j]) || indentOf(lines[j]) > keyColumn); j++) {
+      if (!isBlank(lines[j])) {
+        last = j;
+      }
+    }
+
+    const query = QUERY_KEY.exec(line);
+    if (!query) {
+      i = last;
+      continue;
+    }
+
+    const valueStart = query[0].length;
+    const value = line.slice(valueStart);
+    if (BLOCK_SCALAR_HEADER.test(value)) {
+      for (let j = i + 1; j <= last; j++) {
+        ranges.blockLines.push(j);
+      }
+    } else {
+      if (value.trim() !== "") {
+        const start = valueStart + indentOf(value);
+        ranges.inlineSpans.push({ line: i, start, end: line.trimEnd().length });
+      }
+      // Plain or quoted values folded over several lines.
+      for (let j = i + 1; j <= last; j++) {
+        if (!isBlank(lines[j])) {
+          ranges.inlineSpans.push({ line: j, start: indentOf(lines[j]), end: lines[j].trimEnd().length });
+        }
+      }
+    }
+    i = last;
+  }
+
+  return ranges;
+};

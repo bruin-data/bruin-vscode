@@ -1,0 +1,174 @@
+{
+    "scopeName": "bruin.custom-checks.injection",
+    "injectionSelector": "L:source.yaml -string -comment, L:bruin-sql -string -comment, L:bruin-docstring -string -comment",
+    "patterns": [
+        {
+            "include": "#custom-checks"
+        }
+    ],
+    "repository": {
+        "custom-checks": {
+            "comment": "Lasts while lines are indented deeper than `custom_checks:`, are list items at the same indentation, or are blank.",
+            "name": "meta.custom-checks.bruin",
+            "begin": "^([ \\t]*)(custom_checks)[ \\t]*(:)(?=[ \\t]|$)",
+            "while": "^(?=\\1[ \\t]|\\1-(?:[ \\t]|$)|[ \\t]*$)",
+            "beginCaptures": {
+                "2": {
+                    "name": "entity.name.tag.yaml"
+                },
+                "3": {
+                    "name": "punctuation.separator.map.value.yaml"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#query-in-sequence-item"
+                },
+                {
+                    "include": "#query"
+                },
+                {
+                    "include": "#yaml-line"
+                }
+            ]
+        },
+        "query-in-sequence-item": {
+            "comment": "`- query: ...`; the value lasts while lines are indented deeper than the `query` key.",
+            "contentName": "meta.embedded.block.sql",
+            "begin": "^([ \\t]*)(-)([ \\t]+)(query)[ \\t]*(:)(?=[ \\t]|$)",
+            "while": "^(?=\\1 \\3[ \\t]|[ \\t]*$)",
+            "beginCaptures": {
+                "2": {
+                    "name": "punctuation.definition.block.sequence.item.yaml"
+                },
+                "4": {
+                    "name": "entity.name.tag.yaml"
+                },
+                "5": {
+                    "name": "punctuation.separator.map.value.yaml"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#query-value"
+                }
+            ]
+        },
+        "query": {
+            "comment": "`query: ...`; the value lasts while lines are indented deeper than the `query` key.",
+            "contentName": "meta.embedded.block.sql",
+            "begin": "^([ \\t]*)(query)[ \\t]*(:)(?=[ \\t]|$)",
+            "while": "^(?=\\1[ \\t]|[ \\t]*$)",
+            "beginCaptures": {
+                "2": {
+                    "name": "entity.name.tag.yaml"
+                },
+                "3": {
+                    "name": "punctuation.separator.map.value.yaml"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#query-value"
+                }
+            ]
+        },
+        "query-value": {
+            "patterns": [
+                {
+                    "match": "\\G[ \\t]*([|>](?:[1-9][+-]?|[+-][1-9]?)?)[ \\t]*(#.*)?$",
+                    "captures": {
+                        "1": {
+                            "name": "keyword.control.flow.block-scalar.yaml"
+                        },
+                        "2": {
+                            "name": "comment.line.number-sign.yaml"
+                        }
+                    }
+                },
+                {
+                    "begin": "\\G[ \\t]*(\")",
+                    "end": "\"",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "punctuation.definition.string.begin.yaml"
+                        }
+                    },
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.string.end.yaml"
+                        }
+                    },
+                    "patterns": [
+                        {
+                            "match": "\\\\.",
+                            "name": "constant.character.escape.yaml"
+                        },
+                        {
+                            "include": "source.sql"
+                        }
+                    ]
+                },
+                {
+                    "begin": "\\G[ \\t]*(')",
+                    "end": "'(?!')",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "punctuation.definition.string.begin.yaml"
+                        }
+                    },
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.string.end.yaml"
+                        }
+                    },
+                    "patterns": [
+                        {
+                            "match": "''",
+                            "name": "constant.character.escape.yaml"
+                        },
+                        {
+                            "include": "source.sql"
+                        }
+                    ]
+                },
+                {
+                    "include": "source.sql"
+                }
+            ]
+        },
+        "yaml-line": {
+            "comment": "Hand every other entry to the YAML grammar, scoped to the entry's own lines (deeper-indented continuations such as `description: |`), so YAML's multi-line rules can't swallow the `query` keys above.",
+            "patterns": [
+                {
+                    "begin": "^(?=([ \\t]*)-([ \\t]+)\\S)",
+                    "while": "^(?=\\1 \\2[ \\t]|[ \\t]*$)",
+                    "patterns": [
+                        {
+                            "include": "source.yaml"
+                        }
+                    ]
+                },
+                {
+                    "begin": "^(?=([ \\t]*)\\S)",
+                    "while": "^(?=\\1[ \\t]|[ \\t]*$)",
+                    "patterns": [
+                        {
+                            "include": "source.yaml"
+                        }
+                    ]
+                },
+                {
+                    "comment": "Rest of the `custom_checks:` line, e.g. a trailing comment.",
+                    "begin": "(?=\\S)",
+                    "while": "(?!)",
+                    "patterns": [
+                        {
+                            "include": "source.yaml"
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}
