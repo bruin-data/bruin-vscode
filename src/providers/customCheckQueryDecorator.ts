@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
-import { findCustomCheckQueries } from "../utilities/customCheckQueries";
+import { CUSTOM_CHECK_LANGUAGES, findCustomCheckQueries } from "../utilities/customCheckQueries";
 
-const SUPPORTED_LANGUAGES = ["sql", "sql-bigquery", "python", "yaml"];
 const UPDATE_DELAY_MS = 150;
 
 /**
@@ -27,13 +26,15 @@ export class CustomCheckQueryDecorator implements vscode.Disposable {
       this.blockDecoration,
       this.inlineDecoration,
       vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach((e) => this.decorate(e))),
-      vscode.workspace.onDidChangeTextDocument((event) => this.scheduleUpdate(event.document))
+      vscode.workspace.onDidChangeTextDocument((event) => this.scheduleUpdate(event.document)),
+      // Changing a document's language mode reopens it, so this also covers mode switches.
+      vscode.workspace.onDidOpenTextDocument((document) => this.decorateDocument(document))
     );
     vscode.window.visibleTextEditors.forEach((editor) => this.decorate(editor));
   }
 
   private scheduleUpdate(document: vscode.TextDocument) {
-    if (!SUPPORTED_LANGUAGES.includes(document.languageId)) {
+    if (!CUSTOM_CHECK_LANGUAGES.includes(document.languageId)) {
       return;
     }
     // One timer per document, so edits elsewhere can't cancel or postpone this refresh.
@@ -42,16 +43,23 @@ export class CustomCheckQueryDecorator implements vscode.Disposable {
       document,
       setTimeout(() => {
         this.pendingUpdates.delete(document);
-        vscode.window.visibleTextEditors
-          .filter((editor) => editor.document === document)
-          .forEach((editor) => this.decorate(editor));
+        this.decorateDocument(document);
       }, UPDATE_DELAY_MS)
     );
   }
 
+  private decorateDocument(document: vscode.TextDocument) {
+    const uri = document.uri.toString();
+    vscode.window.visibleTextEditors
+      .filter((editor) => editor.document.uri.toString() === uri)
+      .forEach((editor) => this.decorate(editor));
+  }
+
   private decorate(editor: vscode.TextEditor) {
     const { document } = editor;
-    if (!SUPPORTED_LANGUAGES.includes(document.languageId)) {
+    if (!CUSTOM_CHECK_LANGUAGES.includes(document.languageId)) {
+      editor.setDecorations(this.blockDecoration, []);
+      editor.setDecorations(this.inlineDecoration, []);
       return;
     }
 

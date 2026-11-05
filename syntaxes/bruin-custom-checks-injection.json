@@ -1,4 +1,5 @@
 {
+    "comment": "Keep in sync with src/utilities/customCheckQueries.ts, which finds the same ranges for the background tint.",
     "scopeName": "bruin.custom-checks.injection",
     "injectionSelector": "L:source.yaml -string -comment, L:bruin-sql -string -comment, L:bruin-docstring -string -comment",
     "patterns": [
