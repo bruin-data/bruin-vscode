@@ -95,11 +95,13 @@ suite("Custom check query ranges", () => {
     assert.deepStrictEqual(inlineSpans, []);
   });
 
-  test("treats BigQuery assets like SQL assets", () => {
-    const text = ["/* @bruin", "custom_checks:", "  - query: SELECT 1", "@bruin */", "query: SELECT 2"].join("\n");
+  for (const languageId of ["sql-bigquery", "postgres"]) {
+    test(`treats ${languageId} assets like SQL assets`, () => {
+      const text = ["/* @bruin", "custom_checks:", "  - query: SELECT 1", "@bruin */", "query: SELECT 2"].join("\n");
 
-    const { inlineSpans } = findCustomCheckQueries(text, "sql-bigquery");
+      const { inlineSpans } = findCustomCheckQueries(text, languageId);
 
-    assert.deepStrictEqual(inlineSpans, [{ line: 2, start: 11, end: 19 }]);
-  });
+      assert.deepStrictEqual(inlineSpans, [{ line: 2, start: 11, end: 19 }]);
+    });
+  }
 });

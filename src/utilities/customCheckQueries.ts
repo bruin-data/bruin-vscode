@@ -12,7 +12,8 @@ const ENTRY_PREFIX = /^[ \t]*(-[ \t]+)?/;
 const QUERY_KEY = /^[ \t]*(-[ \t]+)?query[ \t]*:(?=[ \t]|$)/;
 const BLOCK_SCALAR_HEADER = /^[ \t]*[|>][1-9+-]*[ \t]*(#.*)?$/;
 const BLOCK_SCALAR_ENTRY = /:[ \t]+[|>][1-9+-]*[ \t]*(#.*)?$/;
-const SQL_LANGUAGES = ["sql", "sql-bigquery"];
+const SQL_LANGUAGES = ["sql", "sql-bigquery", "postgres"];
+export const CUSTOM_CHECK_LANGUAGES = [...SQL_LANGUAGES, "python", "yaml"];
 
 const indentOf = (line: string) => line.length - line.trimStart().length;
 const isBlank = (line: string) => line.trim() === "";
@@ -21,6 +22,7 @@ const isComment = (line: string) => line.trimStart().startsWith("#");
 /**
  * Finds the SQL of every `custom_checks[].query` in an asset. For SQL and Python assets only
  * the `@bruin` header is searched; any other language is treated as a plain YAML asset.
+ * Keep in sync with syntaxes/bruin-custom-checks-injection.json, which highlights the same ranges.
  */
 export const findCustomCheckQueries = (text: string, languageId: string): CustomCheckQueryRanges => {
   const lines = text.split(/\r?\n/);
