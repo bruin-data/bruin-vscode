@@ -11,6 +11,7 @@ import {
 import * as vscode from "vscode";
 import * as os from "os";
 import { bruinFoldingRangeProvider } from "../providers/bruinFoldingRangeProvider";
+import { CustomCheckQueryDecorator } from "../providers/customCheckQueryDecorator";
 import {
   setupFoldingOnOpen,
   subscribeToConfigurationChanges,
@@ -296,6 +297,8 @@ export async function activate(context: ExtensionContext) {
     provideFoldingRanges: bruinFoldingRangeProvider,
   });
   context.subscriptions.push(foldingDisposable);
+
+  context.subscriptions.push(new CustomCheckQueryDecorator());
 
   // Register the query code lens provider
   const codeLensProvider = languages.registerCodeLensProvider(

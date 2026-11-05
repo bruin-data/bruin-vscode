@@ -31,6 +31,18 @@
     "redhat.vscode-yaml"
   ],
   "contributes": {
+    "colors": [
+      {
+        "id": "bruin.customCheckQueryBackground",
+        "description": "Background color behind the SQL of custom check queries in Bruin assets.",
+        "defaults": {
+          "dark": "#ffffff0d",
+          "light": "#0000000a",
+          "highContrast": null,
+          "highContrastLight": null
+        }
+      }
+    ],
     "yamlValidation": [
       {
         "fileMatch": [
@@ -283,6 +295,20 @@
         "path": "./syntaxes/bruin-python-injection.json",
         "scopeName": "python.docstring.block",
         "injectTo": [
+          "source.python"
+        ]
+      },
+      {
+        "path": "./syntaxes/bruin-custom-checks-injection.json",
+        "scopeName": "bruin.custom-checks.injection",
+        "embeddedLanguages": {
+          "meta.embedded.block.sql": "sql"
+        },
+        "injectTo": [
+          "source.yaml",
+          "source.sql",
+          "source.sql-bigquery",
+          "source.pgsql",
           "source.python"
         ]
       }
