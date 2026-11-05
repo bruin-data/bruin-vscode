@@ -22,7 +22,7 @@ jobs:
   # OS-specific, so one run is enough.
   unit:
     name: Unit tests
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
     - uses: actions/checkout@v4
@@ -75,11 +75,18 @@ jobs:
   # in parallel instead of sequentially.
   integration:
     name: ${{ matrix.group }} (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            runner: blacksmith-4vcpu-ubuntu-2404
+          - os: macos-latest
+            runner: blacksmith-6vcpu-macos-latest
+          - os: windows-latest
+            runner: blacksmith-4vcpu-windows-2025
         # webview is the long pole, so it runs on its own; the faster suites
         # share one job and run sequentially to amortize setup.
         group: [core, webview]
