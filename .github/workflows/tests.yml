@@ -22,7 +22,7 @@ jobs:
   # OS-specific, so one run is enough.
   unit:
     name: Unit tests
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
     - uses: actions/checkout@v4
@@ -40,7 +40,7 @@ jobs:
         cd webview-ui && npm ci
 
     - name: Allow unprivileged user namespace (ubuntu)
-      run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
 
     # Extension tests shell out to the real `bruin` binary (CLI install check),
     # so it must be present before they run.
@@ -75,11 +75,18 @@ jobs:
   # in parallel instead of sequentially.
   integration:
     name: ${{ matrix.group }} (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            runner: blacksmith-4vcpu-ubuntu-2404
+          - os: macos-latest
+            runner: blacksmith-6vcpu-macos-latest
+          - os: windows-latest
+            runner: blacksmith-4vcpu-windows-2025
         # webview is the long pole, so it runs on its own; the faster suites
         # share one job and run sequentially to amortize setup.
         group: [core, webview]
@@ -101,7 +108,7 @@ jobs:
 
     - name: Allow unprivileged user namespace (ubuntu)
       if: ${{ startsWith(matrix.os, 'ubuntu') }}
-      run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
 
     - name: Setup Chrome browser
       uses: browser-actions/setup-chrome@v1
