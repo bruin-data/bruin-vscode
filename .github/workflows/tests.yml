@@ -40,7 +40,7 @@ jobs:
         cd webview-ui && npm ci
 
     - name: Allow unprivileged user namespace (ubuntu)
-      run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
 
     # Extension tests shell out to the real `bruin` binary (CLI install check),
     # so it must be present before they run.
@@ -108,7 +108,7 @@ jobs:
 
     - name: Allow unprivileged user namespace (ubuntu)
       if: ${{ startsWith(matrix.os, 'ubuntu') }}
-      run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
 
     - name: Setup Chrome browser
       uses: browser-actions/setup-chrome@v1
