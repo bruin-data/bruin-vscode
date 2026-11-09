@@ -2000,6 +2000,31 @@ suite("BruinConnections Tests", () => {
     });
   });
 
+  test("BruinCreateConnection createConnection should not log credentials", async () => {
+    const secret = "super-secret-password";
+    const credentials = { password: secret };
+    const logged: string[] = [];
+    const capture = (...args: any[]) => logged.push(args.map(String).join(" "));
+    // the extension host exposes console methods as getters, so plain stubs are no-ops
+    sinon.replaceGetter(console, "log", () => capture);
+    sinon.replaceGetter(console, "error", () => capture);
+    BruinCommand.isTestMode = false;
+
+    try {
+      execFileStub.onFirstCall().yields(null, "", "");
+      await bruinCreateConnection.createConnection("staging", "conn", "postgres", credentials);
+
+      const rawCommand = `path/to/bruin connections add --env staging --type postgres --name conn --credentials ${JSON.stringify(credentials)} -o json`;
+      execFileStub.onSecondCall().yields(new Error(`Command failed: ${rawCommand}\nboom`), "", "boom");
+      await bruinCreateConnection.createConnection("staging", "conn", "postgres", credentials);
+    } finally {
+      BruinCommand.isTestMode = true;
+    }
+
+    assert.ok(logged.some((line) => line.includes("--credentials ***")));
+    assert.ok(logged.every((line) => !line.includes(secret)), logged.join("\n"));
+  });
+
   // BruinGetAllBruinConnections Tests
   test("BruinGetAllBruinConnections getConnectionsListFromSchema should return connections on success", async () => {
     const connections = {
