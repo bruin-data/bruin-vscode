@@ -2004,7 +2004,7 @@ suite("BruinConnections Tests", () => {
     const secret = "super-secret-password";
     const credentials = { password: secret };
     const logged: string[] = [];
-    const capture = (...args: any[]) => logged.push(args.map(String).join(" "));
+    const capture = (...args: any[]) => logged.push(util.format(...args));
     // the extension host exposes console methods as getters, so plain stubs are no-ops
     sinon.replaceGetter(console, "log", () => capture);
     sinon.replaceGetter(console, "error", () => capture);
