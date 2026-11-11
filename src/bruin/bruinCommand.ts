@@ -14,6 +14,8 @@ export abstract class BruinCommand {
    */
   private static readonly MAX_OUTPUT_BUFFER = 1024 * 1024 * 64; // 64MB
 
+  private static readonly secretFlags = new Set(["--credentials"]);
+
   /**
    * Initializes a new Bruin command instance.
    *
@@ -40,6 +42,13 @@ export abstract class BruinCommand {
     return args;
   }
 
+  private commandStringForLog(query: string[]): string {
+    const args = this.execArgs(query).map((arg, i, all) =>
+      BruinCommand.secretFlags.has(all[i - 1]) ? "***" : arg
+    );
+    return `${this.bruinExecutable} ${args.join(" ")}`;
+  }
+
   /**
    * Executes the command and returns a promise for the binary contents of
    * standard output.
@@ -60,7 +69,7 @@ export abstract class BruinCommand {
     } = {}
   ): Promise<string> {
     const startTime = Date.now();
-    const commandString = `${this.bruinExecutable} ${this.execArgs(query).join(' ')}`;
+    const commandString = this.commandStringForLog(query);
     
     if (!BruinCommand.isTestMode) {
       console.log(`[${new Date().toISOString()}] Starting command: ${commandString}`);
@@ -95,7 +104,12 @@ export abstract class BruinCommand {
 
           if (error) {
             if (!BruinCommand.isTestMode) {
-              console.error(`[${new Date().toISOString()}] Command failed after ${duration}ms:`, error.message);
+              // execFile's message embeds the raw command line, including secret flag values
+              const rawCommand = `${this.bruinExecutable} ${this.execArgs(query).join(" ")}`;
+              console.error(
+                `[${new Date().toISOString()}] Command failed after ${duration}ms:`,
+                error.message.replace(rawCommand, () => commandString)
+              );
             }
             if (ignoresErrors) {
               resolve("");
@@ -123,7 +137,7 @@ export abstract class BruinCommand {
     } = {}
   ): { promise: Promise<string>; process: child_process.ChildProcess; consoleMessages: Array<{type: 'stdout' | 'stderr' | 'info', message: string, timestamp: string}> } {
     const startTime = Date.now();
-    const commandString = `${this.bruinExecutable} ${this.execArgs(query).join(' ')}`;
+    const commandString = this.commandStringForLog(query);
     
     if (!BruinCommand.isTestMode) {
       console.log(`[${new Date().toISOString()}] Starting command: ${commandString}`);

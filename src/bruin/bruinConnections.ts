@@ -247,7 +247,6 @@ export class BruinCreateConnection extends BruinCommand {
       "-o",
       "json",
     ];
-    console.log("Creating connection with flags:", flags); // Debug message
 
     await this.run(flags, { ignoresErrors })
       .then(
@@ -259,7 +258,6 @@ export class BruinCreateConnection extends BruinCommand {
               environment: env,
               credentials: credentials,
             };
-            console.log("Connection created successfully:", connection);
             this.postMessageToPanels("success", connection);
           } else {
             this.postMessageToPanels("error", JSON.parse(result).error);
