@@ -9,6 +9,11 @@ on:
     - cron: "0 6 * * *" # daily 06:00 UTC
   workflow_dispatch:
 
+# Serialize runs so a scheduled and a manual run can't race to open the PR.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   sync:
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -16,9 +21,9 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: 20
 
@@ -80,10 +85,35 @@ jobs:
           EOF
 
       - name: Open PR if the schema changed
-        uses: peter-evans/create-pull-request@v7.0.8
-        with:
-          commit-message: "chore: sync config-schema.json with Bruin CLI"
-          title: "chore: sync config-schema.json with Bruin CLI"
-          body: "Automated: regenerated config-schema.json from `bruin internal connections`."
-          branch: bot/sync-config-schema
-          delete-branch: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_BRANCH: ${{ github.ref_name }}
+          BRANCH: bot/sync-config-schema
+          TITLE: "chore: sync config-schema.json with Bruin CLI"
+          BODY: "Automated: regenerated config-schema.json from `bruin internal connections`."
+        run: |
+          set -euo pipefail
+          remote_sha=$(git ls-remote --heads origin "refs/heads/${BRANCH}" | cut -f1)
+          git add -A
+          if git diff --cached --quiet; then
+            # Base already matches; drop a leftover bot branch, which closes its PR.
+            if [ -n "$remote_sha" ]; then git push origin --delete "$BRANCH"; fi
+            exit 0
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -C "$BRANCH"
+          git commit -m "$TITLE"
+          # Compare trees so identical reruns don't push a new commit.
+          if [ -n "$remote_sha" ]; then git fetch --no-tags --depth=1 origin "$remote_sha"; fi
+          if [ -z "$remote_sha" ] || ! git diff --quiet "$remote_sha" HEAD --; then
+            git push --force-with-lease="refs/heads/${BRANCH}:${remote_sha}" origin "HEAD:refs/heads/${BRANCH}"
+          fi
+
+          number=$(gh pr list --state open --base "$BASE_BRANCH" --head "$BRANCH" --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh pr edit "$number" --title "$TITLE" --body "$BODY"
+          else
+            gh pr create --base "$BASE_BRANCH" --head "$BRANCH" --title "$TITLE" --body "$BODY"
+          fi
