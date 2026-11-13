@@ -14,8 +14,10 @@ interface CacheEntry {
 export class PipelineLineageCacheService {
   private static instance: PipelineLineageCacheService;
   private cache = new Map<string, CacheEntry>();
+  // Disk-change count per pipeline that has been parsed or is being parsed.
+  private diskGenerations = new Map<string, number>();
   private readonly diskInvalidation = new vscode.EventEmitter<string[]>();
-  /** Fires with the pipeline directories dropped because their files changed on disk. */
+  /** Fires with the parsed pipeline directories whose files changed on disk. */
   public readonly onDidInvalidateFromDisk = this.diskInvalidation.event;
 
   private constructor() {
@@ -29,11 +31,16 @@ export class PipelineLineageCacheService {
     // Files written outside the editor (CLI, git checkout, scripts, agents)
     // raise no onDidChangeTextDocument, so watch asset and pipeline files on disk.
     const watcher = vscode.workspace.createFileSystemWatcher("**/*.{sql,py,r,R,yml,yaml}");
+    // Pipelines with a parse in flight count too: the parse may have read the
+    // files before this change, so its result must not be cached.
     const onDiskChange = (uri: vscode.Uri) => {
-      const dropped = [...this.cache.keys()].filter((dir) => isInsideDir(uri.fsPath, dir));
-      if (dropped.length) {
-        dropped.forEach((dir) => this.cache.delete(dir));
-        this.diskInvalidation.fire(dropped);
+      const changed = [...this.diskGenerations.keys()].filter((dir) => isInsideDir(uri.fsPath, dir));
+      if (changed.length) {
+        for (const dir of changed) {
+          this.diskGenerations.set(dir, this.diskGenerations.get(dir)! + 1);
+          this.cache.delete(dir);
+        }
+        this.diskInvalidation.fire(changed);
       }
     };
     watcher.onDidCreate(onDiskChange);
@@ -59,7 +66,21 @@ export class PipelineLineageCacheService {
     return entry.raw;
   }
 
-  public set(pipelinePath: string, raw: string, hasColumns: boolean): void {
+  /**
+   * Call before parsing a pipeline and pass the result to `set`, so a parse
+   * that overlapped a disk change of that pipeline is not cached.
+   */
+  public diskGeneration(pipelinePath: string): number {
+    if (!this.diskGenerations.has(pipelinePath)) {
+      this.diskGenerations.set(pipelinePath, 0);
+    }
+    return this.diskGenerations.get(pipelinePath)!;
+  }
+
+  public set(pipelinePath: string, raw: string, hasColumns: boolean, diskGeneration: number): void {
+    if (diskGeneration !== this.diskGenerations.get(pipelinePath)) {
+      return;
+    }
     const existing = this.cache.get(pipelinePath);
     // Never downgrade a with-columns entry to a no-column one.
     if (existing?.hasColumns && !hasColumns) {

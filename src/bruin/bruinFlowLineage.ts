@@ -98,10 +98,11 @@ export class BruinLineageInternalParse extends BruinCommand {
       const cacheKey = isPipelineFile ? path.dirname(filePath) : pipelinePath;
       let result = cache.get(cacheKey, includeColumns);
       if (result === undefined) {
+        const diskGeneration = cache.diskGeneration(cacheKey);
         result = await this.run([...enhancedFlags, pipelinePath], { ignoresErrors });
         // Never cache empty output (e.g. ignoresErrors swallowed a failure).
         if (result) {
-          cache.set(cacheKey, result, includeColumns);
+          cache.set(cacheKey, result, includeColumns, diskGeneration);
         }
       }
       const pipelineData = JSON.parse(result);

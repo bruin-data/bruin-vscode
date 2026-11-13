@@ -8343,8 +8343,8 @@ suite("Pipeline lineage cache: files changed on disk", () => {
     const cache = getPipelineLineageCache();
     const demo = path.join(path.sep, "ws", "demo");
     const demo2 = path.join(path.sep, "ws", "demo2");
-    cache.set(demo, "demo-parse", false);
-    cache.set(demo2, "demo2-parse", false);
+    cache.set(demo, "demo-parse", false, cache.diskGeneration(demo));
+    cache.set(demo2, "demo2-parse", false, cache.diskGeneration(demo2));
     const fired: string[][] = [];
     cache.onDidInvalidateFromDisk((dirs) => fired.push(dirs));
     const [onCreate, , onDelete] = watcherHandlers;
@@ -8361,5 +8361,24 @@ suite("Pipeline lineage cache: files changed on disk", () => {
     // Files outside every cached pipeline fire nothing.
     onCreate(vscode.Uri.file(path.join(path.sep, "ws", "other.sql")));
     assert.strictEqual(fired.length, 2);
+  });
+
+  test("does not cache a parse that a disk change overlapped", () => {
+    const cache = getPipelineLineageCache();
+    const fresh = path.join(path.sep, "ws", "fresh");
+    const fired: string[][] = [];
+    cache.onDidInvalidateFromDisk((dirs) => fired.push(dirs));
+    const [onCreate] = watcherHandlers;
+
+    // A file lands while the first parse of `fresh` is still running.
+    const generation = cache.diskGeneration(fresh);
+    onCreate(vscode.Uri.file(path.join(fresh, "assets", "late.sql")));
+    cache.set(fresh, "parse-without-late", false, generation);
+    assert.strictEqual(cache.get(fresh, false), undefined);
+    assert.deepStrictEqual(fired, [[fresh]]);
+
+    // The re-parse that follows is cached as usual.
+    cache.set(fresh, "parse-with-late", false, cache.diskGeneration(fresh));
+    assert.strictEqual(cache.get(fresh, false), "parse-with-late");
   });
 });
