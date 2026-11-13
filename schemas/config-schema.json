@@ -2460,6 +2460,21 @@
                 },
                 "disable_ssl": {
                     "type": "boolean"
+                },
+                "memory_limit": {
+                    "type": "string"
+                },
+                "threads": {
+                    "type": "integer"
+                },
+                "temp_directory": {
+                    "type": "string"
+                },
+                "max_temp_directory_size": {
+                    "type": "string"
+                },
+                "preserve_insertion_order": {
+                    "type": "boolean"
                 }
             },
             "additionalProperties": false,
@@ -3083,9 +3098,7 @@
             "additionalProperties": false,
             "type": "object",
             "required": [
-                "name",
-                "owner",
-                "repo"
+                "name"
             ]
         },
         "GitLabConnection": {
@@ -3224,6 +3237,9 @@
                 },
                 "read_only": {
                     "type": "boolean"
+                },
+                "storage_uri": {
+                    "type": "string"
                 }
             },
             "additionalProperties": false,
