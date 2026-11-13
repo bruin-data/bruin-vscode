@@ -14,6 +14,9 @@ interface CacheEntry {
 export class PipelineLineageCacheService {
   private static instance: PipelineLineageCacheService;
   private cache = new Map<string, CacheEntry>();
+  private readonly diskInvalidation = new vscode.EventEmitter<string[]>();
+  /** Fires with the pipeline directories dropped because their files changed on disk. */
+  public readonly onDidInvalidateFromDisk = this.diskInvalidation.event;
 
   private constructor() {
     // A different Bruin binary can produce different output.
@@ -22,6 +25,20 @@ export class PipelineLineageCacheService {
         this.invalidateAll();
       }
     });
+
+    // Files written outside the editor (CLI, git checkout, scripts, agents)
+    // raise no onDidChangeTextDocument, so watch asset and pipeline files on disk.
+    const watcher = vscode.workspace.createFileSystemWatcher("**/*.{sql,py,r,R,yml,yaml}");
+    const onDiskChange = (uri: vscode.Uri) => {
+      const dropped = [...this.cache.keys()].filter((dir) => isInsideDir(uri.fsPath, dir));
+      if (dropped.length) {
+        dropped.forEach((dir) => this.cache.delete(dir));
+        this.diskInvalidation.fire(dropped);
+      }
+    };
+    watcher.onDidCreate(onDiskChange);
+    watcher.onDidChange(onDiskChange);
+    watcher.onDidDelete(onDiskChange);
   }
 
   public static getInstance(): PipelineLineageCacheService {
@@ -63,6 +80,11 @@ export class PipelineLineageCacheService {
   public invalidateAll(): void {
     this.cache.clear();
   }
+}
+
+export function isInsideDir(filePath: string, dir: string): boolean {
+  const relative = path.relative(dir, filePath);
+  return relative !== ".." && !relative.startsWith(".." + path.sep) && !path.isAbsolute(relative);
 }
 
 export function getPipelineLineageCache(): PipelineLineageCacheService {

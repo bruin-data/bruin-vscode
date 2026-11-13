@@ -52,7 +52,10 @@ import {
 } from "../bruin/bruinConnections";
 import { BruinPanel } from "../panels/BruinPanel";
 import { LineagePanel } from "../panels/LineagePanel";
-import { getPipelineLineageCache } from "../providers/PipelineLineageCacheService";
+import {
+  getPipelineLineageCache,
+  PipelineLineageCacheService,
+} from "../providers/PipelineLineageCacheService";
 import { BruinLineage, BruinRender, BruinValidate } from "../bruin";
 import { renderCommand, renderCommandWithFlags } from "../extension/commands/renderCommand";
 import {
@@ -8306,5 +8309,57 @@ suite("backfill CLI version guard", () => {
     assert.ok(!versionGte(parseVersion("0.11.623"), min));
     assert.ok(!versionGte(parseVersion("0.11.0"), min));
     assert.ok(!versionGte(parseVersion("0.10.999"), min));
+  });
+});
+
+suite("Pipeline lineage cache: files changed on disk", () => {
+  // Handlers registered on the stubbed watcher, in order: create, change, delete.
+  let watcherHandlers: Array<(uri: vscode.Uri) => void>;
+  let originalInstance: unknown;
+
+  setup(() => {
+    watcherHandlers = [];
+    const register = (handler: (uri: vscode.Uri) => void) => {
+      watcherHandlers.push(handler);
+      return { dispose() {} };
+    };
+    sinon.stub(vscode.workspace, "createFileSystemWatcher").returns({
+      onDidCreate: register,
+      onDidChange: register,
+      onDidDelete: register,
+      dispose() {},
+    } as any);
+    // The cache is a singleton; build a fresh one on the stubbed watcher.
+    originalInstance = (PipelineLineageCacheService as any).instance;
+    (PipelineLineageCacheService as any).instance = undefined;
+  });
+
+  teardown(() => {
+    (PipelineLineageCacheService as any).instance = originalInstance;
+    sinon.restore();
+  });
+
+  test("drops only the pipeline whose files changed outside the editor", () => {
+    const cache = getPipelineLineageCache();
+    const demo = path.join(path.sep, "ws", "demo");
+    const demo2 = path.join(path.sep, "ws", "demo2");
+    cache.set(demo, "demo-parse", false);
+    cache.set(demo2, "demo2-parse", false);
+    const fired: string[][] = [];
+    cache.onDidInvalidateFromDisk((dirs) => fired.push(dirs));
+    const [onCreate, , onDelete] = watcherHandlers;
+
+    // demo2 shares demo's path prefix but is a different pipeline.
+    onCreate(vscode.Uri.file(path.join(demo2, "assets", "new.sql")));
+    assert.strictEqual(cache.get(demo2, false), undefined);
+    assert.strictEqual(cache.get(demo, false), "demo-parse");
+
+    onDelete(vscode.Uri.file(path.join(demo, "pipeline.yml")));
+    assert.strictEqual(cache.get(demo, false), undefined);
+    assert.deepStrictEqual(fired, [[demo2], [demo]]);
+
+    // Files outside every cached pipeline fire nothing.
+    onCreate(vscode.Uri.file(path.join(path.sep, "ws", "other.sql")));
+    assert.strictEqual(fired.length, 2);
   });
 });
