@@ -1,7 +1,4 @@
 # Changelog
-## [0.84.10]
-- Fixed the lineage panel showing a stale graph after asset or pipeline files change outside the editor (CLI, git checkout, scripts, AI agents); it now refreshes without reloading the window.
-
 ## [0.84.9]
 - Custom check queries in assets are now highlighted as SQL with a subtle background, instead of showing as plain YAML text.
 
