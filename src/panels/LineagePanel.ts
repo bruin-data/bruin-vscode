@@ -4,7 +4,7 @@ import { getUri } from "../utilities/getUri";
 import { flowLineageCommand } from "../extension/commands/FlowLineageCommand";
 import { trackEvent } from "../extension/extension";
 import { getCurrentPipelinePath } from "../bruin/bruinUtils";
-import { getPipelineLineageCache } from "../providers/PipelineLineageCacheService";
+import { getPipelineLineageCache, isInsideDir } from "../providers/PipelineLineageCacheService";
 
 export class LineagePanel implements vscode.WebviewViewProvider, vscode.Disposable {
   private static instance: LineagePanel;
@@ -101,6 +101,13 @@ export abstract class BaseLineagePanel implements vscode.WebviewViewProvider, vs
           this._lastRenderedDocumentUri = event.document.uri;
           // Debounce: a full pipeline parse per keystroke is expensive on large
           // pipelines. Coalesce rapid edits into a single CLI call.
+          this.scheduleLoadLineageData();
+        }
+      }),
+      // Files of the shown pipeline changed outside the editor: re-parse it.
+      getPipelineLineageCache().onDidInvalidateFromDisk((pipelineDirs) => {
+        const shownPath = this._lastRenderedDocumentUri?.fsPath;
+        if (shownPath && pipelineDirs.some((dir) => isInsideDir(shownPath, dir))) {
           this.scheduleLoadLineageData();
         }
       })
