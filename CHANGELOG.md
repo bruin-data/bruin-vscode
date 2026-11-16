@@ -1,7 +1,6 @@
 # Changelog
 ## [0.84.10]
 - Lineage now refreshes when files change outside VS Code.
-- Connection credentials are no longer logged.
 
 ## [0.84.9]
 - Custom check queries in assets are now highlighted as SQL with a subtle background, instead of showing as plain YAML text.
