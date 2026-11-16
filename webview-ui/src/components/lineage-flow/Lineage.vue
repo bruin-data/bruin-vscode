@@ -822,16 +822,20 @@ const handleColumnLevelLineage = async () => {
   columnExpandAllUpstreams.value = false;
   columnExpandAllDownstreams.value = false;
 
-  // Column data not loaded yet: fetch it on demand (-c) and show a spinner.
-  // When it arrives, the pipelineData watcher rebuilds the column view.
   if (!hasColumnLineageData(props.pipelineData)) {
-    error.value = null;
-    columnElements.value = { nodes: [], edges: [] };
-    columnFetchPending.value = true;
-    vscode.postMessage({ command: "bruin.fetchColumnLineage" });
+    fetchColumnLineage();
     return;
   }
   await buildColumnElements();
+};
+
+// Column data not loaded yet: fetch it on demand (-c) and show a spinner.
+// When it arrives, the pipelineData watcher rebuilds the column view.
+const fetchColumnLineage = () => {
+  error.value = null;
+  columnElements.value = { nodes: [], edges: [] };
+  columnFetchPending.value = true;
+  vscode.postMessage({ command: "bruin.fetchColumnLineage" });
 };
 
 // Identity of the current lineage target; stays stable across the repeated data
@@ -906,7 +910,13 @@ watch(
 
     // Same target refreshed: rebuild the current view instead of snapping away.
     if (showColumnView.value) {
-      buildColumnElements();
+      // A re-parse after a file change has no columns; refetch them once
+      // (the pending flag stops a loop when the pipeline has none).
+      if (!columnFetchPending.value && !hasColumnLineageData(props.pipelineData)) {
+        fetchColumnLineage();
+      } else {
+        buildColumnElements();
+      }
     } else if (showPipelineView.value) {
       buildPipelineElements();
     } else {
