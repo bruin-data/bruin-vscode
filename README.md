@@ -89,6 +89,7 @@ After installing, run the **Bruin: Show Getting Started Walkthrough** command fr
 ## Release Notes
 
 ### Recent Update
+- **0.84.10**: Fixed the lineage panel showing an outdated graph when asset files change outside VS Code (e.g. from the CLI or an AI agent); it now refreshes automatically.
 - **0.84.9**: Custom check queries in assets are now highlighted as SQL with a subtle background, instead of showing as plain YAML text.
 - **0.84.8**: Ingestr assets that set a `connection` or `destination_connection` now show the destination as coming from that connection instead of "Required".
 - **0.84.7**: Faster asset panel and lineage for large pipelines, and fixed the lineage graph clipping or jumping after it loads.

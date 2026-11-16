@@ -1,4 +1,7 @@
 # Changelog
+## [0.84.10]
+- Fixed the lineage panel showing an outdated graph when asset files change outside VS Code (e.g. from the CLI or an AI agent); it now refreshes automatically.
+
 ## [0.84.9]
 - Custom check queries in assets are now highlighted as SQL with a subtle background, instead of showing as plain YAML text.
 
