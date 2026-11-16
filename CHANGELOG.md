@@ -1,7 +1,7 @@
 # Changelog
 ## [0.84.10]
-- Fixed the lineage panel showing a stale graph after asset or pipeline files change outside VS Code (Bruin CLI, git checkout, scripts, AI agents); it now refreshes on its own instead of needing a window reload.
-- Connection credentials are no longer written to the extension logs when creating a connection.
+- Lineage now refreshes when files change outside VS Code.
+- Connection credentials are no longer logged.
 
 ## [0.84.9]
 - Custom check queries in assets are now highlighted as SQL with a subtle background, instead of showing as plain YAML text.
