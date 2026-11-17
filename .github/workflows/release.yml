@@ -2,6 +2,10 @@ name: Release
 
 on:
   push:
+    branches:
+      - main
+    paths:
+      - package.json
     tags:
       - 'v*.*.*'
   workflow_dispatch:
@@ -15,10 +19,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
-    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-
+  version:
+    if: github.ref_type == 'tag' || github.ref == 'refs/heads/main'
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v7.0.1
@@ -28,13 +33,17 @@ jobs:
     - name: Get version
       id: get_version
       run: |
-        if [ "$GITHUB_EVENT_NAME" = "push" ]; then
-          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+          echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
           exit 0
         fi
         version=$(jq -r .version package.json)
         tag_commit=$(git rev-parse -q --verify "refs/tags/v$version^{commit}" || true)
         if [ -n "$tag_commit" ] && [ "$tag_commit" != "$(git rev-parse HEAD)" ]; then
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            echo "v$version is already released, nothing to publish."
+            exit 0
+          fi
           echo "::error::v$version is already released. Bump the version in package.json first."
           exit 1
         fi
@@ -43,6 +52,17 @@ jobs:
           exit 1
         fi
         echo "VERSION=$version" >> $GITHUB_OUTPUT
+
+  release:
+    needs: version
+    if: needs.version.outputs.version != ''
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7.0.1
 
     - name: Setup Node.js
       uses: actions/setup-node@v7.1.0
@@ -63,26 +83,23 @@ jobs:
         npm run build:webview
 
     - name: Update package.json version
-      run: |
-        npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version --allow-same-version
+      run: npm version "$VERSION" --no-git-tag-version --allow-same-version
 
     - name: Package extension
       run: vsce package
 
     - name: Publish to Open-VSX
-      run: ovsx publish bruin-${{ steps.get_version.outputs.VERSION }}.vsix -p "$OVSX_PAT" --skip-duplicate
+      run: ovsx publish "bruin-$VERSION.vsix" -p "$OVSX_PAT" --skip-duplicate
       env:
         OVSX_PAT: ${{ secrets.OVSX_PAT }}
 
     - name: Publish to VS Code Marketplace
-      run: vsce publish --packagePath bruin-${{ steps.get_version.outputs.VERSION }}.vsix --oidc --skip-duplicate
+      run: vsce publish --packagePath "bruin-$VERSION.vsix" --oidc --skip-duplicate
 
     # Pushed with GITHUB_TOKEN, so it doesn't re-trigger this workflow on the tag.
     - name: Create tag
-      if: github.event_name == 'workflow_dispatch'
-      env:
-        TAG: v${{ steps.get_version.outputs.VERSION }}
+      if: github.ref_type != 'tag'
       run: |
-        git rev-parse -q --verify "refs/tags/$TAG" >/dev/null && exit 0
-        git tag "$TAG"
-        git push origin "$TAG"
+        git fetch -q origin "refs/tags/v$VERSION:refs/tags/v$VERSION" 2>/dev/null && exit 0
+        git tag "v$VERSION"
+        git push origin "v$VERSION"

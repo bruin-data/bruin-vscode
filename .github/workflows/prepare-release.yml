@@ -1,0 +1,81 @@
+name: Prepare release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+      note:
+        description: Release note (one sentence, added to CHANGELOG.md and README.md)
+        type: string
+        required: true
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main'
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '22.14.0'
+
+      - name: Bump version and add release notes
+        id: bump
+        env:
+          BUMP: ${{ inputs.bump }}
+          NOTE: ${{ inputs.note }}
+        run: |
+          set -euo pipefail
+          npm version "$BUMP" --no-git-tag-version >/dev/null
+          version=$(jq -r .version package.json)
+          VERSION="$version" node <<'EOF'
+          const fs = require("node:fs");
+          const { VERSION, NOTE } = process.env;
+          const note = NOTE.replace(/\s+/g, " ").trim();
+          if (!note) throw new Error("Release note is empty");
+
+          const insertAfter = (file, marker, text) => {
+            const content = fs.readFileSync(file, "utf8");
+            const i = content.indexOf(marker);
+            if (i === -1) throw new Error(`${file}: "${marker}" not found`);
+            const at = i + marker.length;
+            fs.writeFileSync(file, content.slice(0, at) + text + content.slice(at));
+          };
+          insertAfter("CHANGELOG.md", "# Changelog\n", `## [${VERSION}]\n- ${note}\n\n`);
+          insertAfter("README.md", "### Recent Update\n", `- **${VERSION}**: ${note}\n`);
+          EOF
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Open release PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          set -euo pipefail
+          branch="chore/release-$VERSION"
+          title="Bump to $VERSION and add release notes"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$branch"
+          git commit -am "$title"
+          git push --force origin "HEAD:refs/heads/$branch"
+          if [ -z "$(gh pr list --state open --head "$branch" --json number --jq '.[0].number // empty')" ]; then
+            gh pr create --base main --head "$branch" --title "$title" \
+              --body "Merging this publishes $VERSION to the VS Code Marketplace and Open VSX."
+          fi
+          # PRs opened with GITHUB_TOKEN don't trigger pull_request workflows.
+          gh workflow run tests.yml --ref "$branch"
+          gh workflow run secrets-scan.yml --ref "$branch"
