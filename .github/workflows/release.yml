@@ -16,6 +16,10 @@ permissions:
   contents: write
   id-token: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release:
     if: github.event_name == 'push' || github.ref == 'refs/heads/main'
@@ -54,7 +58,13 @@ jobs:
           echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
           exit 0
         fi
-        latest=$(git describe --tags --abbrev=0 --match 'v*.*.*')
+        tags() { git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname "$@" | head -n1; }
+        existing=$(tags --points-at HEAD)
+        if [ -n "$existing" ]; then
+          echo "VERSION=${existing#v}" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        latest=$(tags)
         IFS=. read -r major minor patch <<< "${latest#v}"
         case "$BUMP" in
           major) major=$((major + 1)); minor=0; patch=0 ;;
@@ -81,6 +91,9 @@ jobs:
     # Pushed with GITHUB_TOKEN, so it doesn't re-trigger this workflow on the tag.
     - name: Create tag
       if: github.event_name == 'workflow_dispatch'
+      env:
+        TAG: v${{ steps.get_version.outputs.VERSION }}
       run: |
-        git tag "v${{ steps.get_version.outputs.VERSION }}"
-        git push origin "v${{ steps.get_version.outputs.VERSION }}"
+        git rev-parse -q --verify "refs/tags/$TAG" >/dev/null && exit 0
+        git tag "$TAG"
+        git push origin "$TAG"
