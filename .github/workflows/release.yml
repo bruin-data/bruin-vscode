@@ -78,9 +78,7 @@ jobs:
       run: vsce package
 
     - name: Publish to Open-VSX
-      run: ovsx publish bruin-${{ steps.get_version.outputs.VERSION }}.vsix -p ${{ secrets.OVSX_PAT }}
-      env:
-        OVSX_PAT: ${{ secrets.OVSX_PAT }}
+      run: ovsx publish bruin-${{ steps.get_version.outputs.VERSION }}.vsix --trusted-publishing
 
     - name: Publish to VS Code Marketplace
       run: vsce publish --packagePath bruin-${{ steps.get_version.outputs.VERSION }}.vsix --oidc

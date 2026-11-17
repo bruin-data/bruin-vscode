@@ -37,7 +37,7 @@ echo "New version: $new_version"
 # Confirm
 read -p "Create and push tag $new_version? (y/N): " confirm
 if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
-    git tag "$new_version"
+    git tag -m "Release $new_version" "$new_version"
     git push origin "$new_version"
     echo "✅ Tag $new_version created and pushed!"
     echo "🚀 GitHub Actions will now build and publish the extension"
