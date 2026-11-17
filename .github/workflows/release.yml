@@ -4,18 +4,45 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
 
 permissions:
   contents: write
   id-token: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release:
+    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
     runs-on: blacksmith-4vcpu-ubuntu-2404
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v7.0.1
+      with:
+        fetch-depth: 0
+
+    - name: Get version
+      id: get_version
+      run: |
+        if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        version=$(jq -r .version package.json)
+        tag_commit=$(git rev-parse -q --verify "refs/tags/v$version^{commit}" || true)
+        if [ -n "$tag_commit" ] && [ "$tag_commit" != "$(git rev-parse HEAD)" ]; then
+          echo "::error::v$version is already released. Bump the version in package.json first."
+          exit 1
+        fi
+        if ! grep -qF "## [$version]" CHANGELOG.md; then
+          echo "::error::CHANGELOG.md has no entry for $version."
+          exit 1
+        fi
+        echo "VERSION=$version" >> $GITHUB_OUTPUT
 
     - name: Setup Node.js
       uses: actions/setup-node@v7.1.0
@@ -35,10 +62,6 @@ jobs:
         npm run compile
         npm run build:webview
 
-    - name: Get version from tag
-      id: get_version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
     - name: Update package.json version
       run: |
         npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version --allow-same-version
@@ -47,9 +70,19 @@ jobs:
       run: vsce package
 
     - name: Publish to Open-VSX
-      run: ovsx publish bruin-${{ steps.get_version.outputs.VERSION }}.vsix -p ${{ secrets.OVSX_PAT }}
+      run: ovsx publish bruin-${{ steps.get_version.outputs.VERSION }}.vsix -p "$OVSX_PAT" --skip-duplicate
       env:
         OVSX_PAT: ${{ secrets.OVSX_PAT }}
 
     - name: Publish to VS Code Marketplace
-      run: vsce publish --packagePath bruin-${{ steps.get_version.outputs.VERSION }}.vsix --oidc
+      run: vsce publish --packagePath bruin-${{ steps.get_version.outputs.VERSION }}.vsix --oidc --skip-duplicate
+
+    # Pushed with GITHUB_TOKEN, so it doesn't re-trigger this workflow on the tag.
+    - name: Create tag
+      if: github.event_name == 'workflow_dispatch'
+      env:
+        TAG: v${{ steps.get_version.outputs.VERSION }}
+      run: |
+        git rev-parse -q --verify "refs/tags/$TAG" >/dev/null && exit 0
+        git tag "$TAG"
+        git push origin "$TAG"
