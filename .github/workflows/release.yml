@@ -63,13 +63,6 @@ jobs:
         esac
         echo "VERSION=$major.$minor.$patch" >> $GITHUB_OUTPUT
 
-    # Pushed with GITHUB_TOKEN, so it doesn't re-trigger this workflow on the tag.
-    - name: Create tag
-      if: github.event_name == 'workflow_dispatch'
-      run: |
-        git tag "v${{ steps.get_version.outputs.VERSION }}"
-        git push origin "v${{ steps.get_version.outputs.VERSION }}"
-
     - name: Update package.json version
       run: |
         npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version --allow-same-version
@@ -78,7 +71,14 @@ jobs:
       run: vsce package
 
     - name: Publish to Open-VSX
-      run: ovsx publish bruin-${{ steps.get_version.outputs.VERSION }}.vsix --trusted-publishing
+      run: ovsx publish bruin-${{ steps.get_version.outputs.VERSION }}.vsix --trusted-publishing --skip-duplicate
 
     - name: Publish to VS Code Marketplace
-      run: vsce publish --packagePath bruin-${{ steps.get_version.outputs.VERSION }}.vsix --oidc
+      run: vsce publish --packagePath bruin-${{ steps.get_version.outputs.VERSION }}.vsix --oidc --skip-duplicate
+
+    # Pushed with GITHUB_TOKEN, so it doesn't re-trigger this workflow on the tag.
+    - name: Create tag
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        git tag "v${{ steps.get_version.outputs.VERSION }}"
+        git push origin "v${{ steps.get_version.outputs.VERSION }}"
