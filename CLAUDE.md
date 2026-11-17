@@ -73,4 +73,4 @@ Vue 3 SFCs with a Pinia store (`store/bruinStore.ts`) as the central state. Line
 
 - The webview is a separate npm project — when changing UI deps or configs, do it in `webview-ui/`, and remember to `build:webview` before the extension picks up changes.
 - New CLI features: subclass `BruinCommand`. New user-facing actions: register a `bruin.*` command in `extension.ts` and declare it under `contributes.commands` in `package.json`.
-- User-facing changes should be reflected in the README "Release Notes" and `CHANGELOG.md`; version tags are cut with `npm run tag:patch|minor|major`.
+- Releases: run the **Prepare release** workflow (bump + one-sentence note); it opens a PR that bumps `package.json`/`package-lock.json` and adds the `CHANGELOG.md` and README "Release Notes" entries. Merging it publishes to the VS Code Marketplace and Open VSX and creates the `v*` tag (`release.yml`).
