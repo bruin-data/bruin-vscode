@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   release:
@@ -50,10 +51,5 @@ jobs:
       env:
         OVSX_PAT: ${{ secrets.OVSX_PAT }}
 
-    # Temporarily disabled: the VSCE_PAT has expired and publishing fails.
-    # Re-enable once a fresh Marketplace PAT is generated and stored in secrets.VSCE_PAT.
-    # - name: Publish to VS Code Marketplace
-    #   run: vsce publish -p ${{ secrets.VSCE_PAT }}
-    #   env:
-    #     VSCE_PAT: ${{ secrets.VSCE_PAT }}
-
+    - name: Publish to VS Code Marketplace
+      run: vsce publish --packagePath bruin-${{ steps.get_version.outputs.VERSION }}.vsix --oidc
