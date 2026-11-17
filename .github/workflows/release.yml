@@ -4,6 +4,13 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump
+        type: choice
+        options: [patch, minor, major]
+        default: patch
 
 permissions:
   contents: write
@@ -11,11 +18,14 @@ permissions:
 
 jobs:
   release:
+    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
     runs-on: blacksmith-4vcpu-ubuntu-2404
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v7.0.1
+      with:
+        fetch-depth: 0
 
     - name: Setup Node.js
       uses: actions/setup-node@v7.1.0
@@ -35,9 +45,30 @@ jobs:
         npm run compile
         npm run build:webview
 
-    - name: Get version from tag
+    - name: Get version
       id: get_version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      env:
+        BUMP: ${{ inputs.bump }}
+      run: |
+        if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        latest=$(git describe --tags --abbrev=0 --match 'v*.*.*')
+        IFS=. read -r major minor patch <<< "${latest#v}"
+        case "$BUMP" in
+          major) major=$((major + 1)); minor=0; patch=0 ;;
+          minor) minor=$((minor + 1)); patch=0 ;;
+          *) patch=$((patch + 1)) ;;
+        esac
+        echo "VERSION=$major.$minor.$patch" >> $GITHUB_OUTPUT
+
+    # Pushed with GITHUB_TOKEN, so it doesn't re-trigger this workflow on the tag.
+    - name: Create tag
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        git tag "v${{ steps.get_version.outputs.VERSION }}"
+        git push origin "v${{ steps.get_version.outputs.VERSION }}"
 
     - name: Update package.json version
       run: |
