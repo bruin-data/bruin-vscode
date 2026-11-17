@@ -5,12 +5,6 @@ on:
     tags:
       - 'v*.*.*'
   workflow_dispatch:
-    inputs:
-      bump:
-        description: Version bump
-        type: choice
-        options: [patch, minor, major]
-        default: patch
 
 permissions:
   contents: write
@@ -31,6 +25,25 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Get version
+      id: get_version
+      run: |
+        if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        version=$(jq -r .version package.json)
+        tag_commit=$(git rev-parse -q --verify "refs/tags/v$version^{commit}" || true)
+        if [ -n "$tag_commit" ] && [ "$tag_commit" != "$(git rev-parse HEAD)" ]; then
+          echo "::error::v$version is already released. Bump the version in package.json first."
+          exit 1
+        fi
+        if ! grep -qF "## [$version]" CHANGELOG.md; then
+          echo "::error::CHANGELOG.md has no entry for $version."
+          exit 1
+        fi
+        echo "VERSION=$version" >> $GITHUB_OUTPUT
+
     - name: Setup Node.js
       uses: actions/setup-node@v7.1.0
       with:
@@ -48,30 +61,6 @@ jobs:
       run: |
         npm run compile
         npm run build:webview
-
-    - name: Get version
-      id: get_version
-      env:
-        BUMP: ${{ inputs.bump }}
-      run: |
-        if [ "$GITHUB_EVENT_NAME" = "push" ]; then
-          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-          exit 0
-        fi
-        tags() { git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname "$@" | head -n1; }
-        existing=$(tags --points-at HEAD)
-        if [ -n "$existing" ]; then
-          echo "VERSION=${existing#v}" >> $GITHUB_OUTPUT
-          exit 0
-        fi
-        latest=$(tags)
-        IFS=. read -r major minor patch <<< "${latest#v}"
-        case "$BUMP" in
-          major) major=$((major + 1)); minor=0; patch=0 ;;
-          minor) minor=$((minor + 1)); patch=0 ;;
-          *) patch=$((patch + 1)) ;;
-        esac
-        echo "VERSION=$major.$minor.$patch" >> $GITHUB_OUTPUT
 
     - name: Update package.json version
       run: |
