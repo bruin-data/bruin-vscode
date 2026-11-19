@@ -538,6 +538,51 @@
                 "region"
             ]
         },
+        "AzureBlobConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "account_name": {
+                    "type": "string"
+                },
+                "connection_string": {
+                    "type": "string"
+                },
+                "account_key": {
+                    "type": "string"
+                },
+                "sas_token": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "client_secret": {
+                    "type": "string"
+                },
+                "container_name": {
+                    "type": "string"
+                },
+                "path_to_file": {
+                    "type": "string"
+                },
+                "layout": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name"
+            ]
+        },
         "BallDontLieConnection": {
             "properties": {
                 "name": {
@@ -1016,6 +1061,12 @@
                 "adls": {
                     "items": {
                         "$ref": "#/definitions/ADLSConnection"
+                    },
+                    "type": "array"
+                },
+                "azure_blob": {
+                    "items": {
+                        "$ref": "#/definitions/AzureBlobConnection"
                     },
                     "type": "array"
                 },
@@ -1952,6 +2003,12 @@
                 "dune": {
                     "items": {
                         "$ref": "#/definitions/DuneConnection"
+                    },
+                    "type": "array"
+                },
+                "odoo": {
+                    "items": {
+                        "$ref": "#/definitions/OdooConnection"
                     },
                     "type": "array"
                 }
@@ -4232,6 +4289,47 @@
             "type": "object",
             "required": [
                 "name",
+                "api_key"
+            ]
+        },
+        "OdooConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "database": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "scheme": {
+                    "type": "string",
+                    "default": "https"
+                },
+                "api": {
+                    "type": "string",
+                    "default": "auto"
+                },
+                "page_size": {
+                    "type": "integer",
+                    "default": 1000
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "host",
                 "api_key"
             ]
         },
