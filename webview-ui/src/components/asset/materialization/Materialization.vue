@@ -637,6 +637,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, onUnmounted } from "vue";
 import { vscode } from "@/utilities/vscode";
+import { toSecretsPatch } from "@/utilities/secrets";
 
 const expandedSections = ref({
   basicInfo: true,
@@ -1275,18 +1276,9 @@ const saveMaterialization = () => {
 };
 
 const sendSecretsUpdate = () => {
-  const sanitized = (localSecrets.value || [])
-    .filter(secret => secret?.secret_key?.trim())
-    .map(secret => ({
-      secret_key: secret.secret_key,
-      ...(secret.injected_key && secret.injected_key.trim() && secret.injected_key !== secret.secret_key
-        ? { injected_key: secret.injected_key }
-        : {})
-    }));
-
   vscode.postMessage({
     command: "bruin.setAssetDetails",
-    payload: { secrets: sanitized },
+    payload: { secrets: toSecretsPatch(localSecrets.value) },
     source: "Materialization_saveSecrets",
   });
 };
