@@ -1,4 +1,7 @@
 # Changelog
+## [0.84.11]
+- Fixed saving asset secrets so a blank “inject as” is no longer written as inject_as: "" and removing a secret no longer moves its value onto the next one.
+
 ## [0.84.10]
 - Fixed the lineage panel showing an outdated graph when asset files change outside VS Code (e.g. from the CLI or an AI agent); it now refreshes automatically.
 
