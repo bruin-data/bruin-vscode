@@ -659,6 +659,29 @@
                 "endpoint"
             ]
         },
+        "BreezyHRConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "company_id": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key",
+                "company_id"
+            ]
+        },
         "BruinCloudConnection": {
             "properties": {
                 "name": {
@@ -2009,6 +2032,18 @@
                 "odoo": {
                     "items": {
                         "$ref": "#/definitions/OdooConnection"
+                    },
+                    "type": "array"
+                },
+                "privatus": {
+                    "items": {
+                        "$ref": "#/definitions/PrivatusConnection"
+                    },
+                    "type": "array"
+                },
+                "breezyhr": {
+                    "items": {
+                        "$ref": "#/definitions/BreezyHRConnection"
                     },
                     "type": "array"
                 }
@@ -4303,6 +4338,9 @@
                 "host": {
                     "type": "string"
                 },
+                "port": {
+                    "type": "integer"
+                },
                 "api_key": {
                     "type": "string"
                 },
@@ -4872,6 +4910,31 @@
                 },
                 "api_key": {
                     "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "name",
+                "api_key"
+            ]
+        },
+        "PrivatusConnection": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "max_concurrent_assets": {
+                    "type": "integer"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "site_ids": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
                 }
             },
             "additionalProperties": false,
